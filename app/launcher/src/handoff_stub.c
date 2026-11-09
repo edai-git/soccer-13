@@ -1,6 +1,6 @@
-/* app/launcher/src/handoff_stub.c — SOCCER 13 Low-Address Handoff Stub
- * Hands off execution to relocated_wine_app.prx without interfering with Orbis VideoOut/Pad.
- * Dynamically applies the chosen PES 2013 preset (settings.dat) based on the selected profile.
+/* app/launcher/src/handoff_stub.c — SOCCER 13 Direct Autoboot Stub
+ * Automatically configures PES 2013 to High Preset (1080p, High Quality, VSync ON),
+ * and directly boots into the game without showing the Bliss launcher screen.
  * Strictly adheres to no-RELRO layout and libkernel-only dynamic imports.
  */
 
@@ -88,26 +88,6 @@ static bool apply_preset(int width, int height, int quality) {
     return saved_any;
 }
 
-static void configure_preset_from_arg(const char *profile) {
-    if (!profile) {
-        apply_preset(1280, 720, 1); // Default Medium 720p
-        return;
-    }
-    if (strstr(profile, "high") || strstr(profile, "1080")) {
-        sceKernelDebugOutText(0, "s13_stub: applying HIGH 1080p preset\n");
-        apply_preset(1920, 1080, 2);
-    } else if (strstr(profile, "balance") || strstr(profile, "900")) {
-        sceKernelDebugOutText(0, "s13_stub: applying BALANCE 900p preset\n");
-        apply_preset(1600, 900, 1);
-    } else if (strstr(profile, "low")) {
-        sceKernelDebugOutText(0, "s13_stub: applying LOW 720p preset\n");
-        apply_preset(1280, 720, 0);
-    } else {
-        sceKernelDebugOutText(0, "s13_stub: applying MEDIUM 720p preset\n");
-        apply_preset(1280, 720, 1);
-    }
-}
-
 static void diagnose_libkernel(void) {
     OrbisKernelModule modules[256];
     size_t available = 0;
@@ -167,17 +147,15 @@ static const Descriptor *find_descriptor(const Segment *items, uint32_t count) {
 }
 
 int main(int argc, char **argv) {
-    sceKernelDebugOutText(0, "s13_stub: SOCCER 13 Stub Active\n");
+    (void)argc;
+    sceKernelDebugOutText(0, "s13_stub: SOCCER 13 Direct Autoboot (HIGH 1080p)\n");
 
-    // Configure settings.dat based on profile selected
-    if (argc >= 3 && argv[2]) {
-        configure_preset_from_arg(argv[2]);
-    } else {
-        configure_preset_from_arg(NULL);
-    }
+    // 1. Write High Preset (1920x1080 Full HD, High Quality)
+    apply_preset(1920, 1080, 2);
 
     diagnose_libkernel();
 
+    // 2. Load relocated_wine_app.prx into high memory
     int result = 0;
     uint32_t handle = sceKernelLoadStartModule(
         "/app0/sce_module/relocated_wine_app.prx", 0, NULL, 0, NULL, &result);
@@ -204,8 +182,16 @@ int main(int argc, char **argv) {
         for (;;) sceKernelUsleep(1000000);
     }
 
-    sceKernelDebugOutText(0, "relocwine: entering high-address Wine PRX\n");
-    entry(argc, argv);
+    sceKernelDebugOutText(0, "relocwine: entering high-address Wine PRX (direct game mode: soccer13)\n");
+
+    // 3. Direct autoboot into soccer13 game mode
+    char *game_argv[] = {
+        (argv && argv[0]) ? argv[0] : "/app0/eboot.bin",
+        "profile=soccer13",
+        "path=C:\\Games\\SOCCER13\\pes2013.exe",
+        NULL
+    };
+    entry(3, game_argv);
 
     for (;;) sceKernelUsleep(1000000);
 }
