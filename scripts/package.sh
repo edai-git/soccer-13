@@ -29,11 +29,16 @@ fi
 cp -f "$PW_MODULE_STUBS_DIR/libc.prx" "$STAGE_DIR/sce_module/libc.prx"
 cp -f "$PW_MODULE_STUBS_DIR/libSceFios2.prx" "$STAGE_DIR/sce_module/libSceFios2.prx"
 
-# 2. Stage soccer13 profile and configuration templates
-echo "[+] Staging soccer13 profile and configs..."
-mkdir -p "$STAGE_DIR/app/profiles" "$STAGE_DIR/app/config"
+# 2. Stage soccer13 profile, native launcher and configuration templates
+echo "[+] Staging soccer13 profile, launcher, and configs..."
+mkdir -p "$STAGE_DIR/app/profiles" "$STAGE_DIR/app/config" "$STAGE_DIR/app/launcher"
 cp -f "$PROJECT_ROOT/app/profiles/soccer13.profile" "$STAGE_DIR/app/profiles/"
 cp -f "$PROJECT_ROOT/app/config/dxvk.conf" "$STAGE_DIR/app/config/"
+
+# Copy launcher binary if built
+if [[ -f "$PROJECT_ROOT/build/launcher/soccer13_launcher" ]]; then
+  cp -f "$PROJECT_ROOT/build/launcher/soccer13_launcher" "$STAGE_DIR/app/launcher/"
+fi
 
 # Generate default 1280x720 Medium settings.dat template
 python3 "$PROJECT_ROOT/scripts/generate-settings.py" --out "$STAGE_DIR/app/config/settings.dat" --width 1280 --height 720 --quality 1

@@ -21,40 +21,72 @@ bash "$PROJECT_ROOT/scripts/test.sh"
 # 3. Create package
 OUT_DIR="$PROJECT_ROOT/release" bash "$PROJECT_ROOT/scripts/package.sh"
 
-# 4. Generate THIRD_PARTY.md if missing
-if [[ ! -f "$PROJECT_ROOT/release/THIRD_PARTY.md" ]]; then
-  cat <<'EOF' > "$PROJECT_ROOT/release/THIRD_PARTY.md"
-# THIRD_PARTY.md — Third-Party Licenses and Attributions for SOCCER13
-
-SOCCER13 is an independent open-source clean-room homebrew project. It incorporates and links against the following open-source projects:
-
-- **orbis-win & prospero-win:** LGPL-2.1-or-later (https://github.com/plastikman/orbis-win)
-- **Wine:** LGPL-2.1-or-later (https://www.winehq.org)
-- **Mesa / RADV:** MIT License (https://mesa3d.org)
-- **DXVK:** zlib/libpng License (https://github.com/doitsujin/dxvk)
-- **OpenOrbis Toolchain & Module Stubs:** GPL-3.0 (https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain)
-- **FreeType:** FreeType License / GPL-2.0 (https://www.freetype.org)
-
-No game code, executables, graphics, audio, or trademarks belonging to Konami or Sony Interactive Entertainment are distributed with this software.
-EOF
+# 4. Copy THIRD_PARTY.md & generate release README.md
+echo "[+] Step 3: Staging release documentation & licenses..."
+if [[ -f "$PROJECT_ROOT/THIRD_PARTY.md" ]]; then
+  cp -f "$PROJECT_ROOT/THIRD_PARTY.md" "$PROJECT_ROOT/release/THIRD_PARTY.md"
 fi
 
+cat <<'EOF' > "$PROJECT_ROOT/release/README.md"
+# SOCCER13 (PlayStation 4 HEN Release)
+
+**Title ID:** `GLDS13013`  
+**Base Runtime:** `plastikman/orbis-win` (ABI-v4)  
+**Package:** `SOCCER13-PS4.pkg`
+
+---
+
+## Quick Start Installation Guide
+
+1. **Install Package on PS4:**
+   - Copy `SOCCER13-PS4.pkg` to a FAT32/exFAT USB root.
+   - On PS4 running GoldHEN, open **Package Installer** and install `SOCCER13-PS4.pkg`.
+
+2. **Deploy Your Game Files & Mods:**
+   - **Via USB:** Copy your PC game files (containing `pes2013.exe`, `img/`, and optional mods like `kitserver13/`) to `/SOCCER13/` on your USB stick. Insert into PS4 and open the launcher.
+   - **Via Network / FTP:** From your PC, run:
+     ```bash
+     ./scripts/deploy-ps4.sh install-soccer13 /path/to/pc_game_folder
+     ```
+   - *Note for Repack editions:* `code.txt` is completely optional. Repacks and community patches run out of the box.
+
+3. **Play:**
+   - Launch `SOCCER13` from the PS4 Home Screen.
+   - Select **PLAY SOCCER13** or configure graphics in **SETTINGS**.
+   - All navigation uses your DualShock 4 controller.
+EOF
+
 # 5. Generate BUILD-MANIFEST.txt and SHA256SUMS
-echo "[+] Emitting release provenance & SHA256SUMS..."
+echo "[+] Step 4: Emitting release provenance & SHA256SUMS..."
 cd "$PROJECT_ROOT/release"
+
+ROOT_COMMIT=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "uncommitted")
+ORBIS_WIN_COMMIT=$(git -C "$PROJECT_ROOT/runtime/orbis-win" rev-parse HEAD 2>/dev/null || echo "unknown")
+
 {
-  echo "SOCCER13 PS4 HEN Release"
-  echo "build_timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+  echo "package=SOCCER13-PS4.pkg"
+  if [[ -f "SOCCER13-PS4.pkg" && -s "SOCCER13-PS4.pkg" ]]; then
+    echo "package_sha256=$(sha256sum "SOCCER13-PS4.pkg" | cut -d' ' -f1)"
+  else
+    echo "package_sha256=none"
+  fi
+  echo "title_id=GLDS13013 app_ver=01.00 title=SOCCER13"
+  echo "build_timestamp_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
   echo "source_date_epoch=${SOURCE_DATE_EPOCH:-1767225600}"
-  echo "root_commit=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "uncommitted")"
-  echo "orbis_win_commit=$(git -C "$PROJECT_ROOT/runtime/orbis-win" rev-parse HEAD 2>/dev/null || echo "unknown")"
+  echo "root_commit=$ROOT_COMMIT"
+  echo "orbis_win_commit=$ORBIS_WIN_COMMIT"
+  echo "wine_commit=$WINE_COMMIT"
+  echo "dxvk_version=$DXVK_VERSION"
+  echo "module_stub_source=OpenOrbis-PS4-Toolchain@0a1aaf9dd4a92695538bdeb09fb056d06dd11725 (GPL-3.0)"
 } > BUILD-MANIFEST.txt
 
+# Generate SHA256SUMS for all release artifacts
 find . -maxdepth 1 -type f ! -name "SHA256SUMS" -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
 cat BUILD-MANIFEST.txt
 cat SHA256SUMS
 
 # 6. Final validation
+echo "[+] Step 5: Running final release validation..."
 bash "$PROJECT_ROOT/scripts/validate.sh" "$PROJECT_ROOT/release/SOCCER13-PS4.pkg"
 
 echo "=========================================================="

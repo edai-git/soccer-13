@@ -31,6 +31,7 @@ usage() {
   echo "  push-profile <profile_file>  Upload game profile to /data/prospero-win/profiles/"
   echo "  push-file <local> <remote>   Upload a file safely to PS4 via GoldHEN FTP"
   echo "  fetch-logs [output_dir]      Download session-0..7 logs to artifacts/logs/"
+  echo "  analyze-logs [log_file]      Analyze PS4 session log with 12-stage evaluator"
   echo "  install-soccer13 <game_dir>  Stage and install game & mods to PS4 HEN"
   echo "  listen-logs [port]           Run TCP ps5logd listener (default: $PS4_LOG_PORT)"
   echo ""
@@ -108,6 +109,16 @@ case "$COMMAND" in
       python3 "$FTP_GET" "$PS4_HOST" "$PS4_FTP_PORT" "$REMOTE_LOG" "$LOCAL_LOG" 2>/dev/null || true
     done
     echo "[+] Log retrieval completed. Check $LOG_OUT."
+    ;;
+
+  analyze-logs)
+    LOG_FILE="${1:-$PROJECT_ROOT/artifacts/logs/session-0.log}"
+    if [[ ! -f "$LOG_FILE" ]]; then
+      echo "[-] Log file not found at: $LOG_FILE" >&2
+      echo "    Run ./scripts/deploy-ps4.sh fetch-logs first or pass path to log file." >&2
+      exit 1
+    fi
+    python3 "$PROJECT_ROOT/scripts/analyze-session-log.py" "$LOG_FILE"
     ;;
 
   install-soccer13)

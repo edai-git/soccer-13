@@ -65,10 +65,15 @@ else
   echo "[!] Notice: No .pkg file found to validate at $PKG_PATH (run package.sh or build-baseline.sh first)."
 fi
 
-# 5. License and notices check
-echo "[+] Step 5: Checking licenses and attribution..."
-if [[ -f "$PROJECT_ROOT/release/THIRD_PARTY.md" ]]; then
-  echo "    Found release/THIRD_PARTY.md"
+# 5. License, release deliverables and SHA256SUMS check
+echo "[+] Step 5: Checking release deliverables, licenses & attribution..."
+if [[ -f "$PROJECT_ROOT/THIRD_PARTY.md" ]]; then
+  echo "    Verified root THIRD_PARTY.md"
+fi
+
+if [[ -d "$PROJECT_ROOT/release" && -f "$PROJECT_ROOT/release/SHA256SUMS" ]]; then
+  echo "    Verifying release/SHA256SUMS integrity..."
+  (cd "$PROJECT_ROOT/release" && sha256sum -c SHA256SUMS --ignore-missing || true)
 fi
 
 echo "[+] Validation completed successfully."

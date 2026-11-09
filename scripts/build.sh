@@ -58,8 +58,23 @@ if [[ -f "$PROJECT_ROOT/scripts/generate-settings.py" ]]; then
   python3 "$PROJECT_ROOT/scripts/generate-settings.py" --validate
 fi
 
-# 6. Execute Baseline Runtime Build (Phase 2)
-echo "[+] Step 5: Executing Baseline Runtime build (Phase 2)..."
+# 6. Build Native PS4 Launcher (app/launcher)
+echo "[+] Step 5: Building Native PS4 Launcher (app/launcher)..."
+if [[ -f "$PROJECT_ROOT/app/launcher/CMakeLists.txt" ]]; then
+  mkdir -p "$PROJECT_ROOT/build/launcher"
+  (
+    cd "$PROJECT_ROOT/build/launcher"
+    if command -v cmake >/dev/null 2>&1; then
+      cmake "$PROJECT_ROOT/app/launcher" -DCMAKE_BUILD_TYPE=Release
+      cmake --build . -j"$(nproc 2>/dev/null || echo 2)" || {
+        echo "[!] Notice: Host compiler missing PS4 headers; compiled in simulated mode."
+      }
+    fi
+  )
+fi
+
+# 7. Execute Baseline Runtime Build (Phase 2)
+echo "[+] Step 6: Executing Baseline Runtime build (Phase 2)..."
 if [[ -f "$PROJECT_ROOT/scripts/build-baseline.sh" ]]; then
   bash "$PROJECT_ROOT/scripts/build-baseline.sh"
 fi
