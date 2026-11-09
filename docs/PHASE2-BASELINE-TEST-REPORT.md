@@ -125,3 +125,4 @@ Key lines to look for:
 - [ ] Session log `session-0.log` saved and archived in `artifacts/logs/`.
 - [ ] Reference game passed Stages 1 through 12.
 - [ ] Phase 2 Hardware Gate Approved to proceed to Phase 3 (SOCCER13 Integration).
+
