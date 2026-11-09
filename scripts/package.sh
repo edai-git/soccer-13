@@ -29,10 +29,10 @@ fi
 cp -f "$PW_MODULE_STUBS_DIR/libc.prx" "$STAGE_DIR/sce_module/libc.prx"
 cp -f "$PW_MODULE_STUBS_DIR/libSceFios2.prx" "$STAGE_DIR/sce_module/libSceFios2.prx"
 
-# 2. Stage soccer13 profile, native launcher and configuration templates
-echo "[+] Staging soccer13 profile, launcher, and configs..."
+# 2. Stage soccer13 profiles, native launcher and configuration templates
+echo "[+] Staging soccer13 profiles, launcher, and configs..."
 mkdir -p "$STAGE_DIR/app/profiles" "$STAGE_DIR/app/config" "$STAGE_DIR/app/launcher"
-cp -f "$PROJECT_ROOT/app/profiles/soccer13.profile" "$STAGE_DIR/app/profiles/"
+cp -f "$PROJECT_ROOT"/app/profiles/*.profile "$STAGE_DIR/app/profiles/"
 cp -f "$PROJECT_ROOT/app/config/dxvk.conf" "$STAGE_DIR/app/config/"
 
 # Copy launcher binary if built
@@ -102,9 +102,9 @@ if [[ -f "$BASELINE_STAGE/eboot.bin" && -f "$REPACKAGE_SCRIPT" ]]; then
   echo "    Repackaging with base stage: $BASELINE_STAGE"
   mkdir -p "$STAGE_DIR/app-pkg"
   
-  # Inject soccer13 profile, configs, and assets into base stage if needed
+  # Inject soccer13 profiles, configs, and assets into base stage if needed
   mkdir -p "$BASELINE_STAGE/app/profiles" "$BASELINE_STAGE/app/config" "$BASELINE_STAGE/sce_sys"
-  cp -f "$PROJECT_ROOT/app/profiles/soccer13.profile" "$BASELINE_STAGE/app/profiles/"
+  cp -f "$PROJECT_ROOT"/app/profiles/*.profile "$BASELINE_STAGE/app/profiles/"
   cp -f "$PROJECT_ROOT/app/config/dxvk.conf" "$BASELINE_STAGE/app/config/"
   cp -f "$STAGE_DIR/app/config/settings.dat" "$BASELINE_STAGE/app/config/"
 
