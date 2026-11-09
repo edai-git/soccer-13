@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import shutil
 import socket
 import sys
 import time
@@ -23,6 +24,28 @@ import time
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DEFAULT_STATE = PROJECT_ROOT / "build/soccer13-upload-state.json"
+
+
+def load_env_defaults() -> tuple[str | None, int]:
+    """Reads PS4_IP / PS4_HOST and PS4_FTP_PORT from .env, .ENV, or config.env."""
+    host = None
+    port = 2121
+    for name in (".env", ".ENV", "config.env"):
+        env_path = PROJECT_ROOT / name
+        if env_path.is_file():
+            for raw_line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                if k in ("PS4_HOST", "PS4_IP") and v:
+                    host = v
+                elif k == "PS4_FTP_PORT" and v.isdigit():
+                    port = int(v)
+            break
+    return host, port
 
 
 class GoldHENClient:
@@ -93,14 +116,31 @@ class GoldHENClient:
 
 
 def main() -> int:
+    default_host, default_port = load_env_defaults()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix", type=Path, default=PROJECT_ROOT / "build/staged-prefix/soccer13")
     parser.add_argument("--profile", type=Path, default=PROJECT_ROOT / "app/profiles/soccer13.profile")
-    parser.add_argument("--host", help="PS4 IP address")
-    parser.add_argument("--port", type=int, default=2121, help="GoldHEN FTP port (default: 2121)")
+    parser.add_argument("--host", default=default_host, help="PS4 IP address (defaults to .env PS4_IP/PS4_HOST)")
+    parser.add_argument("--port", type=int, default=default_port, help="GoldHEN FTP port (default: 2121)")
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE, help="Upload resume state file")
     parser.add_argument("--usb-out", type=Path, help="Export to USB folder instead of network upload")
+    parser.add_argument("--check", action="store_true", help="Only verify GoldHEN FTP connection and exit")
     args = parser.parse_args()
+
+    if args.check:
+        if not args.host:
+            print("[-] PS4_IP / PS4_HOST belum diatur di .env / .ENV atau --host.")
+            return 2
+        print(f"[+] Memeriksa koneksi FTP ke PS4 ({args.host}:{args.port})...")
+        try:
+            client = GoldHENClient(args.host, args.port, timeout=5)
+            pwd_reply = client.command("PWD")
+            client.ctl.close()
+            print(f"[OK] TERHUBUNG! GoldHEN FTP aktif di {args.host}:{args.port} ({pwd_reply})")
+            return 0
+        except Exception as exc:
+            print(f"[-] GAGAL terhubung ke {args.host}:{args.port}: {exc}")
+            return 1
 
     if not args.prefix.is_dir():
         print(f"[-] Staged prefix not found: {args.prefix}")

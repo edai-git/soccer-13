@@ -34,7 +34,12 @@ generate_settings = importlib.util.module_from_spec(set_spec)
 set_spec.loader.exec_module(generate_settings)
 
 DOCS_REL = "drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013"
+PROGRAMDATA_DOWNLOAD_REL = "drive_c/ProgramData/KONAMI/Pro Evolution Soccer 2013/download"
 GAMES_REL = "drive_c/Games/SOCCER13"
+
+# Repack installer/uninstaller artifacts to skip when staging to PS4
+SKIP_REPACK_DIRS = {"save", "original", "temp", "directx9c", "dvd"}
+SKIP_REPACK_FILES = {"code.txt", "unins000.exe", "unins000.dat", "struktur.txt", "base-game-structure.txt"}
 
 
 def inject_registry_block(reg_path: Path, section_header: str, key_values: dict[str, str | int]) -> None:
@@ -77,9 +82,9 @@ def stage_soccer13_prefix(
     base_prefix: Path | None = None,
     game_source: Path | None = None,
     product_code: str | None = None,
-    width: int = 1280,
-    height: int = 720,
-    quality: int = 1,
+    width: int = 1920,
+    height: int = 1080,
+    quality: int = 2,
     fullscreen: int = 1,
     repair: bool = False,
 ) -> dict:
@@ -126,20 +131,33 @@ def stage_soccer13_prefix(
         copied_count = 0
         for item in game_source.iterdir():
             dst = games_dir / item.name
+            name_lower = item.name.lower()
             if item.is_dir():
-                if item.name.lower() != "save":  # save is staged to Documents
+                if name_lower not in SKIP_REPACK_DIRS:
                     shutil.copytree(item, dst, dirs_exist_ok=True)
                     copied_count += sum(1 for _ in dst.rglob("*") if _.is_file())
-                    if item.name.lower() in validate_game.KNOWN_MOD_DIRECTORIES:
+                    if name_lower in validate_game.KNOWN_MOD_DIRECTORIES:
                         result["mods_copied"].append(item.name)
             elif item.is_file():
-                if item.name.lower() != "code.txt":
+                if name_lower not in SKIP_REPACK_FILES:
                     shutil.copy2(item, dst)
                     copied_count += 1
-                    if item.name.lower() in validate_game.KNOWN_MOD_DLLS:
+                    if name_lower in validate_game.KNOWN_MOD_DLLS:
                         result["mods_copied"].append(item.name)
         result["game_copied"] = True
         result["files_copied"] = copied_count
+
+        # Stage CommonAppData/ProgramData download folder (e.g., defdat / DLC) from Repack Original/DVD or root
+        prog_dl_dir = prefix_dir / PROGRAMDATA_DOWNLOAD_REL
+        for candidate_dl in (
+            game_source / "Original/DVD/CommonAppData/KONAMI/Pro Evolution Soccer 2013/download",
+            game_source / "CommonAppData/KONAMI/Pro Evolution Soccer 2013/download",
+            game_source / "download",
+        ):
+            if candidate_dl.is_dir():
+                prog_dl_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(candidate_dl, prog_dl_dir, dirs_exist_ok=True)
+                break
 
         # Check for save seed (EDIT.bin, etc.) from source
         src_save = game_source / "save"
@@ -220,8 +238,8 @@ def main() -> int:
     parser.add_argument("--game-source", type=Path, help="Source directory containing user pes2013.exe & mods")
     parser.add_argument("--base-prefix", type=Path, help="Existing Wine base prefix to clone from")
     parser.add_argument("--product-code", help="Override product code")
-    parser.add_argument("--width", type=int, default=1280, help="Horizontal resolution (default: 1280)")
-    parser.add_argument("--height", type=int, default=720, help="Vertical resolution (default: 720)")
+    parser.add_argument("--width", type=int, default=1920, help="Horizontal resolution (default: 1920)")
+    parser.add_argument("--height", type=int, default=1080, help="Vertical resolution (default: 1080)")
     parser.add_argument("--quality", type=int, default=1, choices=[0, 1, 2], help="Quality: 0=Low, 1=Med, 2=High")
     parser.add_argument("--fullscreen", type=int, default=1, choices=[0, 1], help="1=Fullscreen, 0=Windowed")
     parser.add_argument("--repair", action="store_true", help="Repair mode: protect existing saves and settings")

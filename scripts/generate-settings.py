@@ -51,9 +51,9 @@ def crc16_not(data: bytes) -> int:
 
 
 def generate_settings(
-    width: int = 1280,
-    height: int = 720,
-    quality: int = 1,
+    width: int = 1920,
+    height: int = 1080,
+    quality: int = 2,
     fullscreen: bool = True,
     xinput: bool = True,
 ) -> bytes:

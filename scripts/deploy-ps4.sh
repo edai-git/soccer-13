@@ -6,14 +6,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-# Load configuration from gitignored .env or config.env
-if [[ -f "$PROJECT_ROOT/.env" ]]; then
-  # shellcheck disable=SC1091
-  source "$PROJECT_ROOT/.env"
-elif [[ -f "$PROJECT_ROOT/config.env" ]]; then
-  # shellcheck disable=SC1091
-  source "$PROJECT_ROOT/config.env"
-fi
+# Load configuration from gitignored .env, .ENV, or config.env (strip CRLF if edited on Windows)
+for env_candidate in "$PROJECT_ROOT/.env" "$PROJECT_ROOT/.ENV" "$PROJECT_ROOT/config.env"; do
+  if [[ -f "$env_candidate" ]]; then
+    # shellcheck disable=SC1090
+    source <(tr -d '\r' < "$env_candidate")
+    break
+  fi
+done
 
 PS4_HOST="${PS4_HOST:-${PS4_IP:-}}"
 PS4_FTP_PORT="${PS4_FTP_PORT:-2121}"

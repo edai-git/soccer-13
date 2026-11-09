@@ -7,7 +7,7 @@ class TestSoccer13Profile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.profile_path = Path(__file__).resolve().parents[2] / "app/profiles/soccer13.profile"
-        cls.config = configparser.ConfigParser()
+        cls.config = configparser.ConfigParser(strict=False)
         cls.assertTrue(cls.profile_path.exists(), f"Profile not found at {cls.profile_path}")
         cls.config.read(cls.profile_path, encoding="utf-8")
 
@@ -24,7 +24,7 @@ class TestSoccer13Profile(unittest.TestCase):
 
     def test_display_section(self):
         self.assertIn("display", self.config)
-        self.assertEqual(self.config["display"].get("desktop"), "1280x720")
+        self.assertEqual(self.config["display"].get("desktop"), "1920x1080")
 
     def test_input_section(self):
         self.assertIn("input", self.config)

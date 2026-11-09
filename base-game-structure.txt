@@ -1,0 +1,123 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 9870-1058
+D:.
+|   pes2013.exe
+|   rld.dll
+|   settings.exe
+|   struktur.txt
+|   unins000.dat
+|   unins000.exe
+|   
++---img
+|       dt00_e.img
+|       dt01.img
+|       dt02.img
+|       dt03.img
+|       dt04.img
+|       dt05_a.img
+|       dt05_e.img
+|       dt05_n.img
+|       dt05_r.img
+|       dt05_t.img
+|       dt05_v.img
+|       dt06.img
+|       dt07.img
+|       dt08.img
+|       dt09.img
+|       dt0a.img
+|       dt0b.img
+|       dt0c.img
+|       dt0d.img
+|       dt0e.img
+|       dt0f.img
+|       dt10.img
+|       dt11.img
+|       pes12ci.sfd
+|       pes13cl_a.sfd
+|       pes13cl_b.sfd
+|       pes13cl_c.sfd
+|       pes13el_a.sfd
+|       pes13el_b.sfd
+|       pes13el_c.sfd
+|       pes13lb_a.sfd
+|       pes13pv.sfd
+|       pes13sc_a.sfd
+|       pes13st.sfd
+|       pes_topBG_E_1.sfd
+|       pes_topBG_E_2.sfd
+|       
+\---Original
+    |   0.reg
+    |   1.reg
+    |   2.reg
+    |   3.reg
+    |   pes2013.exe
+    |   reloaded.nfo
+    |   
+    +---DVD
+    |   |   1025.mst
+    |   |   1033.mst
+    |   |   1043.mst
+    |   |   1049.mst
+    |   |   1053.mst
+    |   |   1055.mst
+    |   |   autorun.exe
+    |   |   Autorun.inf
+    |   |   Pro Evolution Soccer 2013.msi
+    |   |   readme.html
+    |   |   region.inf
+    |   |   Setup.exe
+    |   |   
+    |   +---CommonAppData
+    |   |   \---KONAMI
+    |   |       \---Pro Evolution Soccer 2013
+    |   |           \---download
+    |   |                   defdat
+    |   |                   
+    |   +---DirectX9c
+    |   +---launcher
+    |   |   |   bg.bmp
+    |   |   |   cursol1.wav
+    |   |   |   decide.wav
+    |   |   |   style.css
+    |   |   |   
+    |   |   +---ar-SA
+    |   |   |       readme.chm
+    |   |   |       readme.html
+    |   |   |       
+    |   |   +---en-GB
+    |   |   |       readme.chm
+    |   |   |       readme.html
+    |   |   |       
+    |   |   +---images
+    |   |   |       bg.gif
+    |   |   |       header.jpg
+    |   |   |       item_bg_01.gif
+    |   |   |       item_bg_02.gif
+    |   |   |       spacer.gif
+    |   |   |       
+    |   |   +---nl-NL
+    |   |   |       readme.chm
+    |   |   |       readme.html
+    |   |   |       
+    |   |   +---ru-RU
+    |   |   |       readme.chm
+    |   |   |       readme.html
+    |   |   |       
+    |   |   +---sv-SE
+    |   |   |       readme.chm
+    |   |   |       readme.html
+    |   |   |       
+    |   |   \---tr-TR
+    |   |           readme.chm
+    |   |           readme.html
+    |   |           
+    |   \---program files
+    |       \---KONAMI
+    |           \---Pro Evolution Soccer 2013
+    \---Temp
+            0.reg
+            1.reg
+            2.reg
+            3.reg
+            

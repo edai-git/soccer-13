@@ -134,6 +134,44 @@ class TestStageSoccer13(unittest.TestCase):
             # Verify user's career save was NOT overwritten
             self.assertEqual(save_path.read_bytes(), b"USER_CUSTOMIZED_SAVED_CAREER_DATA")
 
+    def test_repack_structure_with_original_dvd_and_rld(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            game_src = tmp_path / "repack_source"
+            game_src.mkdir()
+            (game_src / "pes2013.exe").write_bytes(make_dummy_pe32())
+            (game_src / "rld.dll").write_bytes(b"RLD_COMPANION_DLL")
+            (game_src / "unins000.exe").write_bytes(b"UNINSTALLER_BLOAT")
+            (game_src / "unins000.dat").write_bytes(b"UNINSTALLER_DATA")
+            (game_src / "img").mkdir()
+            (game_src / "img/dt00_e.img").write_bytes(b"IMG_ARCHIVE")
+            (game_src / "img/pes12ci.sfd").write_bytes(b"SFD_VIDEO")
+
+            # Simulate Original/DVD/CommonAppData/KONAMI/Pro Evolution Soccer 2013/download/defdat
+            dl_dir = game_src / "Original/DVD/CommonAppData/KONAMI/Pro Evolution Soccer 2013/download"
+            dl_dir.mkdir(parents=True)
+            (dl_dir / "defdat").write_bytes(b"DEFDAT_PAYLOAD")
+            (game_src / "Original/DVD/Pro Evolution Soccer 2013.msi").write_bytes(b"MSI_BLOAT")
+
+            target_prefix = tmp_path / "prefix"
+            res = stage_soccer13.stage_soccer13_prefix(prefix_dir=target_prefix, game_source=game_src)
+
+            self.assertEqual(res["errors"], [])
+            games_dir = target_prefix / "drive_c/Games/SOCCER13"
+            self.assertTrue((games_dir / "pes2013.exe").is_file())
+            self.assertTrue((games_dir / "rld.dll").is_file())
+            self.assertTrue((games_dir / "img/dt00_e.img").is_file())
+            self.assertTrue((games_dir / "img/pes12ci.sfd").is_file())
+
+            # Verify bloat was skipped
+            self.assertFalse((games_dir / "Original").exists())
+            self.assertFalse((games_dir / "unins000.exe").exists())
+
+            # Verify defdat was staged into ProgramData
+            staged_defdat = target_prefix / "drive_c/ProgramData/KONAMI/Pro Evolution Soccer 2013/download/defdat"
+            self.assertTrue(staged_defdat.is_file())
+            self.assertEqual(staged_defdat.read_bytes(), b"DEFDAT_PAYLOAD")
+
 
 if __name__ == "__main__":
     unittest.main()

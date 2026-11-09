@@ -13,7 +13,8 @@ architecture = pe32
 graphics = dxvk
 
 [display]
-desktop = 1280x720
+desktop = 1920x1080
+scaling = fit
 
 [input]
 mode = xinput
@@ -24,7 +25,9 @@ touchpad = mouse_left
 
 [runtime]
 cpu = native
+thread_scheduling = true
 
 [debug]
-env = PW_WINESERVER_HEAP_DIRECT=1;PW_PS4_FORCE_EXEC=0
-
+winedebug = -all,err+ntdll
+env = PW_PS4_FORCE_EXEC=0
+env = PW_WINESERVER_HEAP_DIRECT=1
