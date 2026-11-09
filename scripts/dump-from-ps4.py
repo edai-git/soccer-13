@@ -12,7 +12,16 @@ import sys
 import time
 from pathlib import Path
 
-PS4_IP = os.environ.get("PS4_IP", "192.168.11.11" if os.path.exists(".env") else "10.0.0.1")
+# Load .env if present
+env_file = Path(__file__).resolve().parent.parent / ".env"
+if env_file.exists():
+    with open(env_file, "r") as f:
+        for line in f:
+            if line.strip() and not line.startswith("#") and "=" in line:
+                k, v = line.strip().split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+PS4_IP = os.environ.get("PS4_IP", "10.0.0.1")
 PS4_FTP_PORT = int(os.environ.get("PS4_FTP_PORT", "2121"))
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

@@ -1,13 +1,13 @@
 # Implementation Plan: Dump Game dari PS4 & Pembuatan Standalone PKG (`SOCCER13-FULL-PS4.pkg`)
 
 ## 1. Tujuan
-Mengambil (*dump*) seluruh file game PES 2013 beserta konfigurasi Wine registry yang sudah tervalidasi dari konsol PS4 (`192.168.11.11:2121`), lalu mengemasnya bersama runtime `orbis-win` dan *Direct Autoboot Launcher* (**Preset High 1080p**) ke dalam **satu file `.pkg` mandiri (`artifacts/SOCCER13-FULL-PS4.pkg`)**.
+Mengambil (*dump*) seluruh file game PES 2013 beserta konfigurasi Wine registry yang sudah tervalidasi dari konsol PS4 (`<PS4_IP>:2121`), lalu mengemasnya bersama runtime `orbis-win` dan *Direct Autoboot Launcher* (**Preset High 1080p**) ke dalam **satu file `.pkg` mandiri (`artifacts/SOCCER13-FULL-PS4.pkg`)**.
 
 Dengan `.pkg` mandiri ini, pengguna di PS4 HEN mana pun **hanya perlu menginstal 1 file `.pkg`** lewat *GoldHEN Package Installer* dan langsung memainkan game tanpa perlu menyalin folder game/profil secara manual lewat FTP atau USB.
 
 ---
 
-## 2. Hasil Audit Direktori PS4 Saat Ini (via FTP `192.168.11.11:2121`)
+## 2. Hasil Audit Direktori PS4 Saat Ini (via FTP `<PS4_IP>:2121`)
 
 Berdasarkan pemindaian langsung ke konsol PS4 Anda:
 
@@ -59,7 +59,7 @@ Saat `.pkg` diinstal di PS4, seluruh isi `.pkg` otomatis di-mount oleh Orbis OS 
 
 ### Tahap 1 — Script Dump Game & Registry dari PS4 (`scripts/dump-from-ps4.py`)
 - **[NEW] [dump-from-ps4.py](file:///d:/dev/DEV/other/ps4/soccer13/scripts/dump-from-ps4.py)**
-  - Menghubungkan ke FTP PS4 (`192.168.11.11:2121`).
+  - Menghubungkan ke FTP PS4 (`<PS4_IP>:2121`).
   - Mengunduh seluruh 41 file dari `/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/` ke `build/ps4-dump/game/SOCCER13/` dengan dukungan *resume* (melewati file yang ukurannya sudah cocok jika koneksi sempat terputus) dan indikator progress MB/GB.
   - Mengunduh file seed prefix (`system.reg`, `user.reg`, `userdef.reg`, `.update-timestamp`, `dosdevices/.pw-symlinks`) ke `build/ps4-dump/seed/`.
 
@@ -81,7 +81,7 @@ Saat `.pkg` diinstal di PS4, seluruh isi `.pkg` otomatis di-mount oleh Orbis OS 
 ---
 
 ## 5. Rencana Verifikasi & Estimasi Waktu Eksekusi
-1. **Proses Dump via FTP (`192.168.11.11:2121`):**
+1. **Proses Dump via FTP (`<PS4_IP>:2121`):**
    - Mengunduh 5.57 GB melalui jaringan LAN dari PS4 ke PC (`build/ps4-dump/`).
    - Verifikasi kesamaan ukuran byte untuk ke-41 file game dan ke-5 file seed registry.
 2. **Proses Build & Repackage Standalone PKG:**

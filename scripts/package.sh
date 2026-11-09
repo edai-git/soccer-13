@@ -150,6 +150,27 @@ if [[ "$BUNDLE_GAME_DUMP" == "1" ]]; then
 fi
 
 # Never modify the original baseline.
+patch_pkgtool() {
+    local pkgtool="$OO/bin/linux/PkgTool.Core"
+    if [[ -f "$pkgtool" ]]; then
+        python3 -c "
+import sys
+p = sys.argv[1]
+try:
+    with open(p, 'r+b') as f:
+        f.seek(77934451)
+        b = f.read(1)
+        if b == b'\x1a':
+            f.seek(77934451)
+            f.write(b'\x1e')
+            print('[+] Applied PlayGo ChunkSha buffer sizing patch (0x1a -> 0x1e) to PkgTool.Core')
+except Exception as e:
+    print(f'[!] Warning: Could not patch PkgTool.Core: {e}')
+" "$pkgtool"
+    fi
+}
+patch_pkgtool
+
 if [[ ! -f "$BASELINE_STAGE/eboot.bin" ]]; then
     if [[ -f "$PROJECT_ROOT/build/extracted-baseline/uroot/eboot.bin" ]]; then
         BASELINE_STAGE="$PROJECT_ROOT/build/extracted-baseline/uroot"
