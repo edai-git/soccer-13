@@ -1,6 +1,4 @@
 # docker-compose.yml — Reproducible build configuration for soccer13
-version: "3.8"
-
 services:
   builder:
     build:

@@ -8,11 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SOURCE_DATE_EPOCH=1767225600
 
 # 1. Configure Ubuntu snapshot archive for byte-for-byte reproducibility
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
     sed -i -E "s#^URIs: .*#URIs: https://snapshot.ubuntu.com/ubuntu/$SNAPSHOT/#" /etc/apt/sources.list.d/ubuntu.sources && \
     rm -rf /var/lib/apt/lists/* && apt-get update && \
-    ca=$(apt-cache policy ca-certificates | sed -n 's/^ *Candidate: //p') && \
-    apt-get install -y --reinstall --allow-downgrades "ca-certificates=$ca" && \
+    apt-get install -y --no-install-recommends curl gnupg && \
     rm -rf /var/lib/apt/lists/*
 
 # 2. Install LLVM / Clang 19.1.7 (strict requirement for orbis-win ABI-v4)
