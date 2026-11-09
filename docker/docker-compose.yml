@@ -1,0 +1,31 @@
+# docker/docker-compose.yml — Mirror of root docker-compose.yml
+version: "3.8"
+
+services:
+  builder:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: soccer13-builder:local
+    platform: linux/amd64
+    container_name: soccer13-builder
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - soccer13-build-cache:/cache
+    environment:
+      - LC_ALL=C
+      - TZ=UTC
+      - SOURCE_DATE_EPOCH=1767225600
+      - PW_BUILD_ROOT=/cache/build
+      - OUT=/workspace/artifacts
+      - RELEASE_OUT=/workspace/release
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+      - LD_LIBRARY_PATH=/opt/openssl11/lib
+      - PS4_PKGTOOL_OPENSSL_LIB=/opt/openssl11/lib
+    entrypoint: ["/workspace/scripts/docker-entrypoint.sh"]
+
+volumes:
+  soccer13-build-cache:
+    name: soccer13-build-cache
+
