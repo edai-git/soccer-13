@@ -36,12 +36,7 @@ mkdir -p "$PROJECT_ROOT/artifacts" "$PROJECT_ROOT/release" "$PROJECT_ROOT/build"
 
 # 2. Fetch & verify SDK bundle if needed
 echo "[+] Step 1: Checking OpenOrbis SDK bundle..."
-if [[ ! -f "$PROJECT_ROOT/runtime/orbis-win/sdk/orbis-sdk-v1/BUNDLE.txt" ]]; then
-  echo "    Fetching SDK bundle via upstream fetch-sdk.sh..."
-  (cd "$PROJECT_ROOT/runtime/orbis-win" && bash scripts/fetch-sdk.sh)
-else
-  echo "    OpenOrbis SDK bundle already verified."
-fi
+ensure_orbis_sdk
 
 # 3. Synchronize toolchain shim
 echo "[+] Step 2: Synchronizing toolchain shims..."

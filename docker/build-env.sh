@@ -46,6 +46,44 @@ verify_toolchain() {
   echo "[+] Toolchain verification OK."
 }
 
+ensure_orbis_sdk() {
+  local sdk_dest="${PROJECT_ROOT}/runtime/orbis-win/sdk"
+  local bundle_txt="${sdk_dest}/orbis-sdk-v1/BUNDLE.txt"
+  local tag="orbis-sdk-v1"
+
+  if [[ -f "$bundle_txt" ]]; then
+    echo "    OpenOrbis SDK bundle already verified."
+    return 0
+  fi
+
+  echo "    Ensuring OpenOrbis SDK bundle ($tag)..."
+  mkdir -p "$sdk_dest"
+
+  # If tarball is not yet downloaded, fetch using API endpoint (with direct fallback)
+  if [[ ! -f "$sdk_dest/$tag.tar.gz" ]]; then
+    echo "    Downloading $tag.tar.gz via GitHub API endpoint..."
+    curl -fL# -H "Accept: application/octet-stream" \
+      -o "$sdk_dest/$tag.tar.gz" \
+      "https://api.github.com/repos/orbis-ports/orbis-porting-kit/releases/assets/572744939" || {
+        echo "    API endpoint failed; trying direct release download..."
+        curl -fL# -o "$sdk_dest/$tag.tar.gz" \
+          "https://github.com/orbis-ports/orbis-porting-kit/releases/download/$tag/$tag.tar.gz"
+      }
+  fi
+
+  if [[ ! -f "$sdk_dest/$tag.tar.gz.sha256" ]]; then
+    curl -fLs -H "Accept: application/octet-stream" \
+      -o "$sdk_dest/$tag.tar.gz.sha256" \
+      "https://api.github.com/repos/orbis-ports/orbis-porting-kit/releases/assets/572744940" || {
+        curl -fLs -o "$sdk_dest/$tag.tar.gz.sha256" \
+          "https://github.com/orbis-ports/orbis-porting-kit/releases/download/$tag/$tag.tar.gz.sha256"
+      }
+  fi
+
+  # Delegate unpacking, pairing check, and gate verification to upstream fetch-sdk.sh
+  (cd "${PROJECT_ROOT}/runtime/orbis-win" && bash scripts/fetch-sdk.sh)
+}
+
 verify_dependencies() {
   echo "[+] Verifying pinned source revisions & bundles..."
   
