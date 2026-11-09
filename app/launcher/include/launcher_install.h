@@ -1,7 +1,8 @@
 #pragma once
 
-#include "launcher_game.h"
+#include <stddef.h>
 #include <stdbool.h>
+#include "launcher_game.h"
 
 #ifdef __cplusplus
 extern "C" {

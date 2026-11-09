@@ -85,6 +85,8 @@ find . -maxdepth 1 -type f ! -name "SHA256SUMS" -print0 | sort -z | xargs -0 sha
 cat BUILD-MANIFEST.txt
 cat SHA256SUMS
 
+cd "$PROJECT_ROOT"
+
 # 6. Final validation
 echo "[+] Step 5: Running final release validation..."
 bash "$PROJECT_ROOT/scripts/validate.sh" "$PROJECT_ROOT/release/SOCCER13-PS4.pkg"
