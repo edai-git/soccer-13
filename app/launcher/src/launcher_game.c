@@ -69,3 +69,4 @@ bool s13_game_poll_status(s13_game_info_t *info) {
     // Returns true while running, false when process terminates
     return (info->status == GAME_STATUS_RUNNING);
 }
+

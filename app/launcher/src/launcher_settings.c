@@ -92,3 +92,4 @@ bool s13_settings_save(const char *path, const s13_game_settings_t *in) {
 
     return written == sizeof(buf);
 }
+

@@ -39,3 +39,4 @@ bool s13_game_poll_status(s13_game_info_t *info);
 #ifdef __cplusplus
 }
 #endif
+

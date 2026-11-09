@@ -184,3 +184,4 @@ void s13_video_shutdown(void) {
         s_framebuffer = NULL;
     }
 }
+

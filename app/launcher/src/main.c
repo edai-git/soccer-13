@@ -48,3 +48,4 @@ int main(int argc, char **argv) {
     s13_video_shutdown();
     return 0;
 }
+

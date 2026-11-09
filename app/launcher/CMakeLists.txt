@@ -30,3 +30,4 @@ if(DEFINED ENV{OO_PS4_TOOLCHAIN} OR DEFINED CMAKE_TOOLCHAIN_FILE)
         SceSystemService
     )
 endif()
+

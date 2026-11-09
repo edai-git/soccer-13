@@ -31,3 +31,4 @@ uint16_t s13_crc16_not(const uint8_t *data, size_t len);
 #ifdef __cplusplus
 }
 #endif
+

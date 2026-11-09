@@ -35,3 +35,4 @@ void s13_video_shutdown(void);
 #ifdef __cplusplus
 }
 #endif
+

@@ -23,3 +23,4 @@ void s13_input_shutdown(void) {
     // In native PS4 execution, calls scePadClose()
     memset(&s_prev_state, 0, sizeof(s_prev_state));
 }
+

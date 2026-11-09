@@ -264,3 +264,4 @@ void s13_ui_render(const s13_ui_state_t *ui) {
     // Present / Flip
     s13_video_flip();
 }
+
