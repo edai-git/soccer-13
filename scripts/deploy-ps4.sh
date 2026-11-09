@@ -31,6 +31,7 @@ usage() {
   echo "  push-profile <profile_file>  Upload game profile to /data/prospero-win/profiles/"
   echo "  push-file <local> <remote>   Upload a file safely to PS4 via GoldHEN FTP"
   echo "  fetch-logs [output_dir]      Download session-0..7 logs to artifacts/logs/"
+  echo "  install-soccer13 <game_dir>  Stage and install game & mods to PS4 HEN"
   echo "  listen-logs [port]           Run TCP ps5logd listener (default: $PS4_LOG_PORT)"
   echo ""
   echo "Configuration:"
@@ -107,6 +108,21 @@ case "$COMMAND" in
       python3 "$FTP_GET" "$PS4_HOST" "$PS4_FTP_PORT" "$REMOTE_LOG" "$LOCAL_LOG" 2>/dev/null || true
     done
     echo "[+] Log retrieval completed. Check $LOG_OUT."
+    ;;
+
+  install-soccer13)
+    require_host
+    GAME_DIR="${1:-}"
+    if [[ -z "$GAME_DIR" || ! -d "$GAME_DIR" ]]; then
+      echo "[-] ERROR: Valid game directory required." >&2
+      echo "    Usage: $0 install-soccer13 <path_to_game_with_pes2013_and_img>" >&2
+      exit 1
+    fi
+    STAGE_DIR="$PROJECT_ROOT/build/staged-prefix/soccer13"
+    echo "[+] Step 1: Staging SOCCER13 prefix & mods..."
+    python3 "$PROJECT_ROOT/scripts/stage-soccer13-prefix.py" "$STAGE_DIR" --game-source "$GAME_DIR"
+    echo "[+] Step 2: Uploading profile & prefix to PS4 ($PS4_HOST:$PS4_FTP_PORT)..."
+    python3 "$PROJECT_ROOT/scripts/install-soccer13.py" --prefix "$STAGE_DIR" --host "$PS4_HOST" --port "$PS4_FTP_PORT"
     ;;
 
   listen-logs)

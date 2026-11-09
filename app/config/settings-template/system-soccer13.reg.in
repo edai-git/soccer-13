@@ -1,0 +1,13 @@
+[Software\\Wow6432Node\\KONAMI\\PES2013] 1767225600
+#time=1dd56b8619811d4
+"installdir"="C:\\\\Games\\\\SOCCER13\\\\"
+"version"="1.00.0000"
+"code"="@PRODUCT_CODE@"
+
+[Hardware\\Description\\System\\CentralProcessor\\0] 1767225600
+#time=1dd56b8619811d4
+"~MHz"=dword:00000dac
+"Identifier"="AMD64 Family 22 Model 48 Stepping 1"
+"VendorIdentifier"="AuthenticAMD"
+"ProcessorNameString"="AMD Jaguar 8-Core Processor"
+"FeatureSet"=dword:00001fff
