@@ -61,3 +61,4 @@ After running on console, fetch logs and run the automated analyzer:
 ./scripts/deploy-ps4.sh analyze-logs artifacts/logs/session-0.log
 ```
 The analyzer (`scripts/analyze-session-log.py`) will output a stage-by-stage PASS/FAIL breakdown and isolate any guest faults.
+
