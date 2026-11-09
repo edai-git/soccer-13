@@ -1,0 +1,28 @@
+# Build outputs and artifacts
+artifacts/
+release/
+build/
+pkgout/
+
+# Local console & environment configuration (never commit IPs or credentials)
+config.env
+.env
+*.env.local
+dev.conf
+
+# Proprietary or user-supplied files (strictly prohibited in repo)
+*.pkg
+*.exe
+*.dll
+*.img
+*.sorbisdmp
+sce_module/*.prx
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
