@@ -58,6 +58,12 @@ if [[ -f "$PROJECT_ROOT/scripts/generate-settings.py" ]]; then
   python3 "$PROJECT_ROOT/scripts/generate-settings.py" --validate
 fi
 
-echo "[+] Build preparation completed successfully."
+# 6. Execute Baseline Runtime Build (Phase 2)
+echo "[+] Step 5: Executing Baseline Runtime build (Phase 2)..."
+if [[ -f "$PROJECT_ROOT/scripts/build-baseline.sh" ]]; then
+  bash "$PROJECT_ROOT/scripts/build-baseline.sh"
+fi
+
+echo "[+] Build completed successfully."
 echo "    Staged components in build/ and artifacts/."
 

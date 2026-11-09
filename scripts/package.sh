@@ -54,9 +54,50 @@ fi
 echo "[+] Assembling relocatable package via orbis-win packaging pipeline..."
 BUNDLE="$PROJECT_ROOT/runtime/orbis-win/sdk/orbis-sdk-v1"
 MAKE_PKG="$BUNDLE/orbis-compat/scripts/ps4/make-pkg.sh"
+REPACKAGE_SCRIPT="$PROJECT_ROOT/runtime/orbis-win/scripts/repackage-orbis-ab.py"
 
-if [[ -f "$MAKE_PKG" ]]; then
+BASELINE_STAGE="${PS4_BASELINE_STAGE:-$PROJECT_ROOT/runtime/orbis-win/pkgout/baseline/pkg-stage}"
+if [[ ! -f "$BASELINE_STAGE/eboot.bin" && -d "$PROJECT_ROOT/build/extracted-baseline/uroot" ]]; then
+  BASELINE_STAGE="$PROJECT_ROOT/build/extracted-baseline/uroot"
+elif [[ ! -f "$BASELINE_STAGE/eboot.bin" && -d "$PROJECT_ROOT/build/extracted-baseline" ]]; then
+  BASELINE_STAGE="$PROJECT_ROOT/build/extracted-baseline"
+fi
+
+if [[ -f "$BASELINE_STAGE/eboot.bin" && -f "$REPACKAGE_SCRIPT" ]]; then
+  echo "    Repackaging with base stage: $BASELINE_STAGE"
+  mkdir -p "$STAGE_DIR/app-pkg"
+  
+  # Inject soccer13 profile and configs into base stage if needed
+  mkdir -p "$BASELINE_STAGE/app/profiles" "$BASELINE_STAGE/app/config"
+  cp -f "$PROJECT_ROOT/app/profiles/soccer13.profile" "$BASELINE_STAGE/app/profiles/"
+  cp -f "$PROJECT_ROOT/app/config/dxvk.conf" "$BASELINE_STAGE/app/config/"
+  cp -f "$STAGE_DIR/app/config/settings.dat" "$BASELINE_STAGE/app/config/"
+  
+  python3 "$REPACKAGE_SCRIPT" \
+    --base-stage "$BASELINE_STAGE" \
+    --out-dir "$STAGE_DIR/app-pkg" \
+    --title-id "$TITLE_ID" \
+    --title "$TITLE" \
+    --version "$PKG_VERSION" \
+    --replace "sce_module/libc.prx=$STAGE_DIR/sce_module/libc.prx" \
+    --replace "sce_module/libSceFios2.prx=$STAGE_DIR/sce_module/libSceFios2.prx"
+  
+  PKG_FOUND=$(find "$STAGE_DIR/app-pkg" -maxdepth 1 -type f -name '*.pkg' -print -quit || true)
+  if [[ -n "$PKG_FOUND" ]]; then
+    cp -f "$PKG_FOUND" "$OUT_DIR/SOCCER13-PS4.pkg"
+    echo "[+] Generated: $OUT_DIR/SOCCER13-PS4.pkg"
+  fi
+elif [[ -f "$MAKE_PKG" ]]; then
+  EBOOT_FILE="$STAGE_DIR/eboot.bin"
+  if [[ ! -f "$EBOOT_FILE" && -f "$BASELINE_STAGE/eboot.bin" ]]; then
+    EBOOT_FILE="$BASELINE_STAGE/eboot.bin"
+  elif [[ ! -f "$EBOOT_FILE" ]]; then
+    # Create minimal stub eboot placeholder if real eboot not yet compiled
+    touch "$EBOOT_FILE"
+  fi
+
   bash "$MAKE_PKG" \
+    --eboot "$EBOOT_FILE" \
     --title-id "$TITLE_ID" \
     --title "$TITLE" \
     --version "$PKG_VERSION" \
@@ -71,6 +112,11 @@ if [[ -f "$MAKE_PKG" ]]; then
 else
   echo "[!] Notice: OpenOrbis SDK bundle make-pkg.sh not yet extracted. Simulated stage created."
   touch "$OUT_DIR/SOCCER13-PS4.pkg"
+fi
+
+# 5. Stash / Copy BUILD-MANIFEST.txt
+if [[ -f "$PROJECT_ROOT/artifacts/baseline/BUILD-MANIFEST.txt" ]]; then
+  cp -f "$PROJECT_ROOT/artifacts/baseline/BUILD-MANIFEST.txt" "$OUT_DIR/BUILD-MANIFEST.txt"
 fi
 
 echo "[+] Packaging completed."

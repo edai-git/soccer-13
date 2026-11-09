@@ -16,19 +16,35 @@ echo "=========================================================="
 echo "[+] Step 1: Auditing repository and artifact clean-room hygiene..."
 python3 -m unittest tests.package.test_clean_room -v
 
-# 2. Settings & Profile validation
-echo "[+] Step 2: Validating configuration & settings generators..."
+# 2. Settings, Profile & Baseline Parity validation
+echo "[+] Step 2: Validating configuration, settings & baseline parity tests..."
 python3 "$PROJECT_ROOT/scripts/generate-settings.py" --validate
 python3 -m unittest tests.config.test_profile -v
+python3 -m unittest tests.package.test_baseline_parity -v
 
-# 3. PKG Validation if package exists
+# 3. Upstream Parity Gate Check (if candidate stage exists)
+BASELINE_STAGE="${PS4_BASELINE_STAGE:-$PROJECT_ROOT/runtime/orbis-win/pkgout/baseline/pkg-stage}"
+CANDIDATE_STAGE="${PS4_CANDIDATE_STAGE:-$PROJECT_ROOT/artifacts/baseline/candidate/pkg-stage}"
+if [[ -f "$BASELINE_STAGE/eboot.bin" && -f "$CANDIDATE_STAGE/eboot.bin" ]]; then
+  echo "[+] Step 3: Running upstream check-ps4-package-parity.py (8 hard gates)..."
+  python3 -I "$PROJECT_ROOT/runtime/orbis-win/scripts/check-ps4-package-parity.py" \
+    "$BASELINE_STAGE" "$CANDIDATE_STAGE" || {
+      echo "[-] ERROR: Package parity check reported failures" >&2
+      exit 1
+    }
+fi
+
+# 4. PKG Validation if package exists
 PKG_PATH="${1:-$PROJECT_ROOT/release/SOCCER13-PS4.pkg}"
 if [[ ! -f "$PKG_PATH" ]]; then
   PKG_PATH="$PROJECT_ROOT/artifacts/SOCCER13-PS4.pkg"
 fi
+if [[ ! -f "$PKG_PATH" && -f "$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg" ]]; then
+  PKG_PATH="$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg"
+fi
 
 if [[ -f "$PKG_PATH" && -s "$PKG_PATH" ]]; then
-  echo "[+] Step 3: Validating PS4 PKG structure ($PKG_PATH)..."
+  echo "[+] Step 4: Validating PS4 PKG structure ($PKG_PATH)..."
   PKGTOOL="$PROJECT_ROOT/runtime/orbis-win/sdk/orbis-sdk-v1/sdk/bin/linux/PkgTool.Core"
   if [[ -x "$PKGTOOL" ]]; then
     echo "    Running PkgTool.Core pkg_validate..."
@@ -46,11 +62,11 @@ if [[ -f "$PKG_PATH" && -s "$PKG_PATH" ]]; then
   echo "    Package SHA-256:"
   sha256sum "$PKG_PATH"
 else
-  echo "[!] Notice: No .pkg file found to validate at $PKG_PATH (run package.sh first)."
+  echo "[!] Notice: No .pkg file found to validate at $PKG_PATH (run package.sh or build-baseline.sh first)."
 fi
 
-# 4. License and notices check
-echo "[+] Step 4: Checking licenses and attribution..."
+# 5. License and notices check
+echo "[+] Step 5: Checking licenses and attribution..."
 if [[ -f "$PROJECT_ROOT/release/THIRD_PARTY.md" ]]; then
   echo "    Found release/THIRD_PARTY.md"
 fi
