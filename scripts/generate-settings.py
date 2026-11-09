@@ -56,6 +56,9 @@ def generate_settings(
     quality: int = 2,
     fullscreen: bool = True,
     xinput: bool = True,
+    vsync: bool = True,
+    frame_skipping: bool = False,
+    disable_movie: bool = True,
 ) -> bytes:
     """Generate 852-byte settings.dat binary."""
     out = bytearray(bytes.fromhex(TEMPLATE_HEX))
@@ -64,8 +67,21 @@ def generate_settings(
     struct.pack_into("<I", out, QUALITY_AT, quality)
     struct.pack_into("<I", out, FULLSCREEN_AT, 1 if fullscreen else 0)
 
-    # Flags: 0xCB for XInput + VSync + frame skipping; 0xC3 for DirectInput
-    flags = 0xCB if xinput else 0xC3
+    # Flags at 0x0E (verified from settings.exe 0x1b1d0..0x1b250):
+    #   0xC0 = base constant bits
+    #   0x08 = XInput (1 = XInput, 0 = DirectInput)
+    #   0x04 = Disable Movie Playback (ID 0x0452)
+    #   0x02 = Enable Frame Skipping (ID 0x0451) - OFF (0) for smooth 60 FPS gameplay
+    #   0x01 = Wait for Vsync (ID 0x0450)
+    flags = 0xC0
+    if xinput:
+        flags |= 0x08
+    if disable_movie:
+        flags |= 0x04
+    if frame_skipping:
+        flags |= 0x02
+    if vsync:
+        flags |= 0x01
     struct.pack_into("<H", out, FLAGS_AT, flags)
 
     # Zero checksum bytes before calculation
@@ -91,8 +107,17 @@ def validate_settings(data: bytes) -> bool:
 
 def run_self_test() -> bool:
     """Verify known test vectors from reference settings.exe."""
-    # Test vector 1: 1920x1080 High XInput
-    res_1080 = generate_settings(width=1920, height=1080, quality=2, fullscreen=True, xinput=True)
+    # Test vector 1: 1920x1080 High XInput (reference settings.exe default flags 0xCB)
+    res_1080 = generate_settings(
+        width=1920,
+        height=1080,
+        quality=2,
+        fullscreen=True,
+        xinput=True,
+        vsync=True,
+        frame_skipping=True,
+        disable_movie=False,
+    )
     if not validate_settings(res_1080):
         print("[-] Test Vector 1 Failed: Validation failed")
         return False
@@ -101,9 +126,9 @@ def run_self_test() -> bool:
         print(f"[-] Test Vector 1 Failed: Expected checksum 0x3B3C, got {hex(crc_1080)}")
         return False
 
-    # Test vector 2: 1280x720 Medium XInput (PS4 baseline default)
-    res_720 = generate_settings(width=1280, height=720, quality=1, fullscreen=True, xinput=True)
-    if not validate_settings(res_720):
+    # Test vector 2: 1920x1080 High XInput (PS4 smooth 60 FPS flags 0xCD)
+    res_ps4 = generate_settings(width=1920, height=1080, quality=2, fullscreen=True, xinput=True)
+    if not validate_settings(res_ps4):
         print("[-] Test Vector 2 Failed: Validation failed")
         return False
 
@@ -116,9 +141,9 @@ def main():
     parser.add_argument("--validate", action="store_true", help="Run internal self-tests")
     parser.add_argument("--check-file", type=Path, help="Check an existing settings.dat file")
     parser.add_argument("--out", type=Path, help="Output path to write settings.dat")
-    parser.add_argument("--width", type=int, default=1280, help="Screen width (default: 1280)")
-    parser.add_argument("--height", type=int, default=720, help="Screen height (default: 720)")
-    parser.add_argument("--quality", type=int, default=1, choices=[0, 1, 2], help="Quality: 0=Low, 1=Med, 2=High")
+    parser.add_argument("--width", type=int, default=1920, help="Screen width (default: 1920)")
+    parser.add_argument("--height", type=int, default=1080, help="Screen height (default: 1080)")
+    parser.add_argument("--quality", type=int, default=2, choices=[0, 1, 2], help="Quality: 0=Low, 1=Med, 2=High")
 
     args = parser.parse_args()
 

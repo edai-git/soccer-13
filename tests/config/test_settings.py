@@ -22,10 +22,20 @@ class TestSettingsDat(unittest.TestCase):
         self.assertEqual(data[:4], b"WECF")
 
     def test_known_1080p_checksum(self):
-        data = generate_settings(1920, 1080, quality=2, fullscreen=True, xinput=True)
-        self.assertTrue(validate_settings(data))
-        crc = struct.unpack_from("<H", data, CHECKSUM_AT)[0]
-        self.assertEqual(crc, 0x3B3C)
+        # Reference settings.exe vector (Flags=0xCB: Frame Skipping ON, Movie Playback ON)
+        ref_data = generate_settings(
+            1920, 1080, quality=2, fullscreen=True, xinput=True,
+            vsync=True, frame_skipping=True, disable_movie=False
+        )
+        self.assertTrue(validate_settings(ref_data))
+        ref_crc = struct.unpack_from("<H", ref_data, CHECKSUM_AT)[0]
+        self.assertEqual(ref_crc, 0x3B3C)
+
+        # Default PS4 smooth 60 FPS vector (Flags=0xCD: Frame Skipping OFF, Disable Movie Playback ON)
+        ps4_data = generate_settings(1920, 1080, quality=2, fullscreen=True, xinput=True)
+        self.assertTrue(validate_settings(ps4_data))
+        flags = struct.unpack_from("<H", ps4_data, 0x0E)[0]
+        self.assertEqual(flags, 0x00CD)
 
     def test_dimensions_packed(self):
         data = generate_settings(1280, 720, quality=1)
