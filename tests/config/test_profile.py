@@ -15,7 +15,7 @@ class TestSoccer13Profile(unittest.TestCase):
         self.assertIn("application", self.config)
         app = self.config["application"]
         self.assertEqual(app.get("id"), "soccer13")
-        self.assertEqual(app.get("name"), "SOCCER13")
+        self.assertIn(app.get("name"), ("SOCCER 13", "SOCCER13"))
         self.assertEqual(app.get("prefix"), "soccer13")
         self.assertEqual(app.get("architecture"), "pe32")
         self.assertEqual(app.get("graphics"), "dxvk")

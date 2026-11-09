@@ -45,22 +45,22 @@ class TestLauncherNativeLogic(unittest.TestCase):
 
     def test_menu_state_transitions(self):
         """Simulate D-Pad navigation and boundary wrapping."""
-        # 5 items (0..4)
+        # 3 items (0..2: Play, Setting, Exit)
         selected = 0
         # DOWN
-        selected = (selected + 1) if selected < 4 else 0
+        selected = (selected + 1) if selected < 2 else 0
         self.assertEqual(selected, 1)
 
         # UP
-        selected = (selected - 1) if selected > 0 else 4
+        selected = (selected - 1) if selected > 0 else 2
         self.assertEqual(selected, 0)
 
-        # UP from 0 wraps to 4
-        selected = (selected - 1) if selected > 0 else 4
-        self.assertEqual(selected, 4)
+        # UP from 0 wraps to 2
+        selected = (selected - 1) if selected > 0 else 2
+        self.assertEqual(selected, 2)
 
-        # DOWN from 4 wraps to 0
-        selected = (selected + 1) if selected < 4 else 0
+        # DOWN from 2 wraps to 0
+        selected = (selected + 1) if selected < 2 else 0
         self.assertEqual(selected, 0)
 
     def test_resolution_index_mapping(self):

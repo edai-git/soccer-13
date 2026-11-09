@@ -24,6 +24,7 @@ extern "C" {
 #define S13_COLOR_ERROR    S13_COLOR(0xFF, 0xE7, 0x4C, 0x3C) // Red
 
 bool s13_video_init(void);
+bool s13_video_load_bg(const char *path);
 void s13_video_clear(uint32_t color);
 void s13_video_draw_rect(int x, int y, int w, int h, uint32_t color);
 void s13_video_draw_box(int x, int y, int w, int h, int thickness, uint32_t color);

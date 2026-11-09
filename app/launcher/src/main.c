@@ -11,8 +11,15 @@ int main(int argc, char **argv) {
 
     // 1. Initialize VideoOut
     if (!s13_video_init()) {
-        fprintf(stderr, "[-] Failed to initialize SOCCER13 VideoOut\n");
+        fprintf(stderr, "[-] Failed to initialize SOCCER 13 VideoOut\n");
         return 1;
+    }
+
+    // Try loading background image
+    if (!s13_video_load_bg("/app0/app/assets/bg.raw")) {
+        if (!s13_video_load_bg("app/assets/bg.raw")) {
+            s13_video_load_bg("/data/prospero-win/bg.raw");
+        }
     }
 
     // 2. Initialize Input (DualShock 4)

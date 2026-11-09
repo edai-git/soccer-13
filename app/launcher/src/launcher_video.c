@@ -105,6 +105,7 @@ static const uint8_t s13_font8x16[96][16] = {
 };
 
 static uint32_t *s_framebuffer = NULL;
+static uint32_t *s_bg_buffer = NULL;
 
 bool s13_video_init(void) {
     if (!s_framebuffer) {
@@ -113,8 +114,28 @@ bool s13_video_init(void) {
     return s_framebuffer != NULL;
 }
 
+bool s13_video_load_bg(const char *path) {
+    if (!path) return false;
+    FILE *f = fopen(path, "rb");
+    if (!f) return false;
+    if (!s_bg_buffer) {
+        s_bg_buffer = (uint32_t *)malloc(S13_SCREEN_WIDTH * S13_SCREEN_HEIGHT * sizeof(uint32_t));
+    }
+    if (!s_bg_buffer) {
+        fclose(f);
+        return false;
+    }
+    size_t read = fread(s_bg_buffer, sizeof(uint32_t), S13_SCREEN_WIDTH * S13_SCREEN_HEIGHT, f);
+    fclose(f);
+    return (read == S13_SCREEN_WIDTH * S13_SCREEN_HEIGHT);
+}
+
 void s13_video_clear(uint32_t color) {
     if (!s_framebuffer) return;
+    if (s_bg_buffer) {
+        memcpy(s_framebuffer, s_bg_buffer, S13_SCREEN_WIDTH * S13_SCREEN_HEIGHT * sizeof(uint32_t));
+        return;
+    }
     for (int i = 0; i < S13_SCREEN_WIDTH * S13_SCREEN_HEIGHT; ++i) {
         s_framebuffer[i] = color;
     }
@@ -182,6 +203,10 @@ void s13_video_shutdown(void) {
     if (s_framebuffer) {
         free(s_framebuffer);
         s_framebuffer = NULL;
+    }
+    if (s_bg_buffer) {
+        free(s_bg_buffer);
+        s_bg_buffer = NULL;
     }
 }
 

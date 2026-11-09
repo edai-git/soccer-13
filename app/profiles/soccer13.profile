@@ -3,7 +3,7 @@
 
 [application]
 id = soccer13
-name = SOCCER13
+name = SOCCER 13
 executable = C:\Games\SOCCER13\pes2013.exe
 working_directory = C:\Games\SOCCER13
 dll_overrides = d3d8,d3d9,d3d10core,d3d11,dxgi=n;dinput8=n,b

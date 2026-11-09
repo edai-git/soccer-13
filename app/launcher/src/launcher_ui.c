@@ -32,7 +32,7 @@ void s13_ui_init(s13_ui_state_t *ui) {
     snprintf(settings_path, sizeof(settings_path), "%s/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat", ui->game_info.prefix_path);
     s13_settings_load(settings_path, &ui->settings);
 
-    snprintf(ui->notice_message, sizeof(ui->notice_message), "Welcome to SOCCER13 Launcher");
+    snprintf(ui->notice_message, sizeof(ui->notice_message), "Welcome to SOCCER 13");
     ui->notice_color = S13_COLOR_MUTED;
 }
 
@@ -41,46 +41,33 @@ void s13_ui_update(s13_ui_state_t *ui, const s13_input_state_t *input) {
 
     if (ui->current_view == VIEW_MAIN_MENU) {
         if (input->buttons_pressed & S13_PAD_UP) {
-            ui->selected_item = (ui->selected_item > 0) ? ui->selected_item - 1 : 4;
+            ui->selected_item = (ui->selected_item > 0) ? ui->selected_item - 1 : 2;
         } else if (input->buttons_pressed & S13_PAD_DOWN) {
-            ui->selected_item = (ui->selected_item < 4) ? ui->selected_item + 1 : 0;
+            ui->selected_item = (ui->selected_item < 2) ? ui->selected_item + 1 : 0;
         }
 
         if (input->buttons_pressed & S13_PAD_CROSS) {
             switch (ui->selected_item) {
-                case 0: // PLAY
+                case 0: // Play
                     if (ui->game_info.status == GAME_STATUS_READY) {
                         s13_game_launch(&ui->game_info);
-                        snprintf(ui->notice_message, sizeof(ui->notice_message), "Launching game...");
+                        snprintf(ui->notice_message, sizeof(ui->notice_message), "Launching SOCCER 13...");
                         ui->notice_color = S13_COLOR_SUCCESS;
                     } else {
                         snprintf(ui->notice_message, sizeof(ui->notice_message), "Cannot launch: %s", ui->game_info.status_message);
                         ui->notice_color = S13_COLOR_ERROR;
                     }
                     break;
-                case 1: // SETTINGS
+                case 1: // Setting
                     ui->current_view = VIEW_SETTINGS;
                     ui->selected_item = 0;
                     break;
-                case 2: // INSTALL / REPAIR
-                    ui->current_view = VIEW_INSTALL_REPAIR;
-                    ui->selected_item = 0;
-                    break;
-                case 3: // BACKUP / RESTORE
-                    ui->current_view = VIEW_SAVE_BACKUP;
-                    ui->selected_item = 0;
-                    break;
-                case 4: // ABOUT
-                    ui->current_view = VIEW_ABOUT;
-                    ui->selected_item = 0;
+                case 2: // Exit
+                    ui->should_exit = true;
                     break;
             }
         }
 
-        // Quick button actions
-        if (input->buttons_pressed & S13_PAD_TRIANGLE) {
-            ui->current_view = VIEW_LOG_VIEWER;
-        }
         if (input->buttons_pressed & S13_PAD_CIRCLE) {
             ui->should_exit = true;
         }
@@ -145,7 +132,7 @@ void s13_ui_render(const s13_ui_state_t *ui) {
 
     // Header bar
     s13_video_draw_rect(0, 0, S13_SCREEN_WIDTH, 80, S13_COLOR_HEADER);
-    s13_video_draw_text(60, 28, "SOCCER13  ::  PLAYSTATION 4 HEN LAUNCHER", S13_COLOR_ACCENT);
+    s13_video_draw_text(60, 28, "SOCCER 13  ::  PLAYSTATION 4 HEN LAUNCHER", S13_COLOR_ACCENT);
 
     // Status Panel
     s13_video_draw_rect(60, 120, 1800, 240, S13_COLOR_PANEL);
@@ -177,25 +164,23 @@ void s13_ui_render(const s13_ui_state_t *ui) {
     // View content
     if (ui->current_view == VIEW_MAIN_MENU) {
         const char *menu_items[] = {
-            "PLAY SOCCER13",
-            "DISPLAY & GRAPHICS SETTINGS",
-            "INSTALL / REPAIR GAME PREFIX",
-            "BACKUP / RESTORE SAVE DATA",
-            "ABOUT & HARDWARE SPECS"
+            "Play",
+            "Setting",
+            "Exit"
         };
 
-        for (int i = 0; i < 5; ++i) {
-            int y = 400 + i * 80;
+        for (int i = 0; i < 3; ++i) {
+            int y = 430 + i * 90;
             bool selected = (ui->selected_item == i);
             uint32_t bg = selected ? S13_COLOR_ACCENT : S13_COLOR_PANEL;
             uint32_t text_col = selected ? S13_COLOR_TEXT : S13_COLOR_MUTED;
 
-            s13_video_draw_rect(200, y, 1520, 60, bg);
-            s13_video_draw_box(200, y, 1520, 60, 2, selected ? S13_COLOR_TEXT : S13_COLOR_MUTED);
+            s13_video_draw_rect(200, y, 1520, 70, bg);
+            s13_video_draw_box(200, y, 1520, 70, 2, selected ? S13_COLOR_TEXT : S13_COLOR_MUTED);
 
             char label[64];
             snprintf(label, sizeof(label), "%s %s", selected ? "> " : "  ", menu_items[i]);
-            s13_video_draw_text(240, y + 20, label, text_col);
+            s13_video_draw_text(250, y + 25, label, text_col);
         }
 
     } else if (ui->current_view == VIEW_SETTINGS) {
