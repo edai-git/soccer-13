@@ -148,7 +148,13 @@ static void provision_first_boot(void) {
     copy_if_missing("/app0/seed/userdef.reg", "/data/prospero-win/prefixes/soccer13/userdef.reg");
     copy_if_missing("/app0/seed/.update-timestamp", "/data/prospero-win/prefixes/soccer13/.update-timestamp");
 
-    // 5. Profiles & configs
+    // 5. Option File & patch database (PESEdit squads, transfers, kits)
+    copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
+    copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
+    copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
+    copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
+
+    // 6. Profiles & configs
     copy_if_missing("/app0/app/profiles/soccer13.profile", "/data/prospero-win/profiles/soccer13.profile");
     copy_if_missing("/app0/app/radv.env", "/data/prospero-win/radv.env");
     copy_if_missing("/app0/radv.env", "/data/prospero-win/radv.env");

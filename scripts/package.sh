@@ -28,8 +28,9 @@ WORK_DIR="${WORK_DIR:-$BUILD_BASE/pkg-work}"
 STAGE_DIR="$WORK_DIR/stage"
 PKG_OUT="$WORK_DIR/output"
 
-if [[ -d "$EXTERNAL_STORAGE/ps4-dump/game/SOCCER13" && ! -d "$PROJECT_ROOT/build/ps4-dump/game/SOCCER13" ]]; then
+if [[ -d "$EXTERNAL_STORAGE/ps4-dump/game/SOCCER13" ]]; then
     DUMP_DIR="$EXTERNAL_STORAGE/ps4-dump"
+    log "Using game dump from external storage: $DUMP_DIR"
 else
     DUMP_DIR="$PROJECT_ROOT/build/ps4-dump"
 fi
