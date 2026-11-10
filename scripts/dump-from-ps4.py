@@ -25,7 +25,19 @@ PS4_IP = os.environ.get("PS4_IP", "10.0.0.1")
 PS4_FTP_PORT = int(os.environ.get("PS4_FTP_PORT", "2121"))
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DUMP_DIR = PROJECT_ROOT / "build" / "ps4-dump"
+# Optional external storage fallback: build/external-storage
+ext_storage = PROJECT_ROOT / "build" / "external-storage"
+if ext_storage.is_dir() and not (PROJECT_ROOT / "build" / "ps4-dump" / "game" / "SOCCER13").is_dir():
+    try:
+        test_file = ext_storage / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+        DUMP_DIR = ext_storage / "ps4-dump"
+        print(f"[+] External storage active: dumping to {DUMP_DIR}")
+    except Exception:
+        DUMP_DIR = PROJECT_ROOT / "build" / "ps4-dump"
+else:
+    DUMP_DIR = PROJECT_ROOT / "build" / "ps4-dump"
 GAME_DIR = DUMP_DIR / "game" / "SOCCER13"
 SEED_DIR = DUMP_DIR / "seed"
 

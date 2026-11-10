@@ -195,6 +195,10 @@ docker compose run --rm builder ./scripts/package.sh
 docker compose run --rm builder clean
 ```
 
+> [!TIP]
+> **Dukungan Storage Eksternal (`build/external-storage`):**  
+> Proses pembuatan standalone PKG (6.1 GB) membutuhkan ruang kerja sementara (*staging & intermediate files*) sekitar ~12+ GB. Jika Anda memiliki storage eksternal (USB SSD/HDD), Anda dapat membuat *directory junction* atau symlink ke `build/external-storage`. Pipeline build (`package.sh`) otomatis mendeteksi storage eksternal tersebut dan menggunakannya sebagai workspace sementara guna menghemat kapasitas disk internal Anda. Jika storage eksternal tidak terhubung atau dicabut, build otomatis kembali menggunakan folder lokal `build/` seperti biasa.
+
 ---
 
 ## 6. Instalasi & Penggunaan pada PS4

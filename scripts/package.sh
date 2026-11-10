@@ -13,11 +13,26 @@ TITLE="${TITLE:-SOCCER 13}"
 PKG_VERSION="${PKG_VERSION:-01.00}"
 
 OUT_DIR="${OUT_DIR:-$PROJECT_ROOT/artifacts}"
-WORK_DIR="$PROJECT_ROOT/build/pkg-work"
+
+# External storage detection (build/external-storage)
+EXTERNAL_STORAGE="$PROJECT_ROOT/build/external-storage"
+if [[ -d "$EXTERNAL_STORAGE" ]] && touch "$EXTERNAL_STORAGE/.write_test" 2>/dev/null; then
+    rm -f "$EXTERNAL_STORAGE/.write_test"
+    BUILD_BASE="$EXTERNAL_STORAGE"
+    echo "[+] External storage detected and active: $EXTERNAL_STORAGE"
+else
+    BUILD_BASE="$PROJECT_ROOT/build"
+fi
+
+WORK_DIR="${WORK_DIR:-$BUILD_BASE/pkg-work}"
 STAGE_DIR="$WORK_DIR/stage"
 PKG_OUT="$WORK_DIR/output"
 
-DUMP_DIR="$PROJECT_ROOT/build/ps4-dump"
+if [[ -d "$EXTERNAL_STORAGE/ps4-dump/game/SOCCER13" && ! -d "$PROJECT_ROOT/build/ps4-dump/game/SOCCER13" ]]; then
+    DUMP_DIR="$EXTERNAL_STORAGE/ps4-dump"
+else
+    DUMP_DIR="$PROJECT_ROOT/build/ps4-dump"
+fi
 DUMP_GAME="$DUMP_DIR/game/SOCCER13"
 DUMP_SEED="$DUMP_DIR/seed"
 

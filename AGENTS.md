@@ -176,3 +176,11 @@ docker compose run --rm builder clean
   1. *Option File / Transfer (`EDIT.bin`):* Cukup dikirim langsung via FTP ke `/data/prospero-win/prefixes/soccer13/drive_c/users/.../save/EDIT.bin`. Tidak perlu rebuild PKG dan tidak perlu dump ulang.
   2. *Testing Mod Langsung di PS4:* File mod baru dapat dikirim via FTP langsung ke `/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/`.
   3. *Repackage Standalone PKG Baru:* Cukup letakkan file patch baru di `build/ps4-dump/game/SOCCER13/` pada PC, lalu jalankan `docker compose run --rm builder ./scripts/package.sh`. **Tidak perlu melakukan dump ulang dari konsol.**
+
+### 6.7 External Storage for Build Workspace (`build/external-storage`)
+- **Dukungan Storage Eksternal Otomatis:**
+  - Pengguna dapat menghubungkan media penyimpanan eksternal (USB SSD/HDD) yang di-mount atau di-*junction* ke folder lokal `build/external-storage`.
+  - Skrip build dan packaging (`scripts/package.sh`, `scripts/dump-from-ps4.py`) mendeteksi keberadaan dan hak tulis pada `build/external-storage`:
+    - **Jika storage eksternal terbaca:** Folder tersebut otomatis digunakan sebagai direktori kerja sementara (`WORK_DIR="$EXTERNAL_STORAGE/pkg-work"` yang menampung stage 6.1 GB dan output intermediate PKG 6.1 GB) serta cache dump, menghemat ~12+ GB ruang penyimpanan pada drive host internal.
+    - **Jika storage eksternal tidak terbaca / dicabut:** Skrip secara transparan kembali menggunakan direktori lokal `$PROJECT_ROOT/build/pkg-work` seperti biasa tanpa memicu error atau kegagalan pipeline.
+  - Seluruh subdirektori di bawah `build/` (termasuk `build/external-storage`) wajib selalu berada di dalam `.gitignore`.
