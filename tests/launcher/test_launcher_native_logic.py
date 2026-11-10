@@ -84,6 +84,21 @@ class TestLauncherNativeLogic(unittest.TestCase):
         self.assertEqual(res_widths[idx], 1280)
         self.assertEqual(res_heights[idx], 720)
 
+    def test_handoff_stub_uses_direct_app0_mapping(self):
+        """Verify handoff_stub.c maps game assets directly via .pw-symlinks without heavy copy."""
+        stub_c = ROOT / "app" / "launcher" / "src" / "handoff_stub.c"
+        self.assertTrue(stub_c.is_file(), "handoff_stub.c not found")
+        content = stub_c.read_text(encoding="utf-8")
+
+        # Must write .pw-symlinks pointing to /app0/game/SOCCER13
+        self.assertIn("SOCCER13\\t/app0/game/SOCCER13", content)
+        self.assertIn("drive_c/Games/.pw-symlinks", content)
+        self.assertIn("dosdevices/.pw-symlinks", content)
+
+        # Must NOT copy heavy img assets in synchronous loop (prevents 5-minute freeze on boot)
+        self.assertNotIn("copy_if_missing(src, dst);", content)
+        self.assertNotIn('snprintf(dst, sizeof(dst), "/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/img/%s"', content)
+
 
 if __name__ == "__main__":
     unittest.main()
