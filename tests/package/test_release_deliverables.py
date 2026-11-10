@@ -86,6 +86,21 @@ PW_ORBIS_VA_FAIL in radv_alloc_memory
         finally:
             temp_path.unlink(missing_ok=True)
 
+    def test_external_storage_support_in_scripts_and_docs(self):
+        """Verify package.sh, dump-from-ps4.py, AGENTS.md, and README.md support build/external-storage."""
+        pkg_sh = (ROOT / "scripts" / "package.sh").read_text(encoding="utf-8")
+        self.assertIn("build/external-storage", pkg_sh)
+        self.assertIn("BUILD_BASE", pkg_sh)
+
+        dump_py = (ROOT / "scripts" / "dump-from-ps4.py").read_text(encoding="utf-8")
+        self.assertIn("build/external-storage", dump_py)
+
+        agents_md = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("build/external-storage", agents_md)
+
+        readme_md = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("build/external-storage", readme_md)
+
 
 if __name__ == "__main__":
     unittest.main()

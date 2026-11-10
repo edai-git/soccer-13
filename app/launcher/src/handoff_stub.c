@@ -1,6 +1,7 @@
-/* app/launcher/src/handoff_stub.c — SOCCER 13 Direct Autoboot Stub
- * Automatically configures PES 2013 to High Preset (1080p, High Quality, VSync ON),
- * and directly boots into the game without showing the Bliss launcher screen.
+/* app/launcher/src/handoff_stub.c — SOCCER 13 Standalone Direct Autoboot Stub
+ * Automatically provisions Wine prefix, registry seed, profiles and game assets on first boot,
+ * configures PES 2013 to High Preset (1080p, High Quality, VSync ON),
+ * and directly boots into the game without showing any setup screens.
  * Strictly adheres to no-RELRO layout and libkernel-only dynamic imports.
  */
 
@@ -22,6 +23,148 @@ typedef void (*Entry)(int, char **);
 static const char *const libkernel_symbols[] __attribute__((unused)) = {
 #include "libkernel-symbols.inc"
 };
+
+/* File copy buffer: 32KB to fit within no-RELRO 64KB data segment window [0x7fff0000, 0x80000000) */
+static uint8_t g_copy_chunk[32 * 1024];
+
+static void make_dir(const char *path) {
+    sceKernelMkdir(path, 0777);
+}
+
+static bool file_exists_and_sized(const char *path, int64_t expected_size) {
+    OrbisKernelStat st;
+    memset(&st, 0, sizeof(st));
+    if (sceKernelStat(path, &st) == 0) {
+        return (int64_t)st.st_size >= expected_size;
+    }
+    return false;
+}
+
+static void copy_if_missing(const char *src, const char *dst) {
+    OrbisKernelStat src_st;
+    memset(&src_st, 0, sizeof(src_st));
+    if (sceKernelStat(src, &src_st) != 0) {
+        return; // Source does not exist, nothing to copy
+    }
+
+    if (file_exists_and_sized(dst, src_st.st_size)) {
+        return; // Destination exists with valid size, skip
+    }
+
+    int32_t in_fd = sceKernelOpen(src, 0x0000 /* O_RDONLY */, 0);
+    if (in_fd < 0) return;
+
+    int32_t out_fd = sceKernelOpen(dst, 0x0001 | 0x0200 | 0x0400 /* O_WRONLY | O_CREAT | O_TRUNC */, 0666);
+    if (out_fd < 0) {
+        sceKernelClose(in_fd);
+        return;
+    }
+
+    int64_t n;
+    while ((n = sceKernelRead(in_fd, g_copy_chunk, sizeof(g_copy_chunk))) > 0) {
+        sceKernelWrite(out_fd, g_copy_chunk, (size_t)n);
+    }
+
+    sceKernelClose(in_fd);
+    sceKernelClose(out_fd);
+}
+
+static void write_text_file(const char *path, const char *content) {
+    int32_t fd = sceKernelOpen(path, 0x0001 | 0x0200 | 0x0400 /* O_WRONLY | O_CREAT | O_TRUNC */, 0666);
+    if (fd >= 0) {
+        sceKernelWrite(fd, content, strlen(content));
+        sceKernelClose(fd);
+    }
+}
+
+static void cleanup_legacy_game_dir(void) {
+    static const char *const img_files[] = {
+        "dt00_e.img", "dt01.img", "dt02.img", "dt03.img", "dt04.img",
+        "dt05_a.img", "dt05_e.img", "dt05_n.img", "dt05_r.img", "dt05_t.img",
+        "dt05_v.img", "dt06.img", "dt07.img", "dt08.img", "dt09.img",
+        "dt0a.img", "dt0b.img", "dt0c.img", "dt0d.img", "dt0e.img",
+        "dt0f.img", "dt10.img", "dt11.img", "pes12ci.sfd.bak", "pes13cl_a.sfd",
+        "pes13cl_b.sfd", "pes13cl_c.sfd", "pes13el_a.sfd", "pes13el_b.sfd",
+        "pes13el_c.sfd", "pes13lb_a.sfd", "pes13pv.sfd.bak", "pes13sc_a.sfd",
+        "pes13st.sfd", "pes_topBG_E_1.sfd", "pes_topBG_E_2.sfd", NULL
+    };
+    for (int i = 0; img_files[i]; ++i) {
+        char path[128];
+        snprintf(path, sizeof(path), "/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/img/%s", img_files[i]);
+        sceKernelUnlink(path);
+    }
+    sceKernelRmdir("/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/img");
+
+    static const char *const root_files[] = {
+        "pes2013.exe", "rld.dll", "settings.exe", "code.txt", "dxvk.conf", NULL
+    };
+    for (int i = 0; root_files[i]; ++i) {
+        char path[128];
+        snprintf(path, sizeof(path), "/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/%s", root_files[i]);
+        sceKernelUnlink(path);
+    }
+    sceKernelRmdir("/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13");
+}
+
+/* One-time provisioning for new PS4 consoles on First Boot */
+static void provision_first_boot(void) {
+    sceKernelDebugOutText(0, "s13_stub: checking first boot provisioning...\n");
+
+    // 1. Clean up legacy or interrupted game asset directory in /data
+    // Game assets are mounted directly from /app0/game/SOCCER13 via .pw-symlinks
+    cleanup_legacy_game_dir();
+
+    // 2. Ensure directory tree exists (do NOT create drive_c/Games/SOCCER13 directory)
+    make_dir("/data/prospero-win");
+    make_dir("/data/prospero-win/profiles");
+    make_dir("/data/prospero-win/logs");
+    make_dir("/data/prospero-win/prefixes");
+    make_dir("/data/prospero-win/prefixes/soccer13");
+    make_dir("/data/prospero-win/prefixes/soccer13/dosdevices");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/Games");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013");
+    make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save");
+
+    // 3. Drive & folder symlink tables (.pw-symlinks)
+    // Maps C:\Games\SOCCER13 -> /app0/game/SOCCER13 and D: -> /app0/game/SOCCER13
+    write_text_file("/data/prospero-win/prefixes/soccer13/dosdevices/.pw-symlinks",
+                    "c:\t../drive_c\nz:\t/\nd:\t/app0/game/SOCCER13\n");
+    write_text_file("/data/prospero-win/prefixes/soccer13/drive_c/Games/.pw-symlinks",
+                    "SOCCER13\t/app0/game/SOCCER13\n");
+
+    // 4. Prefix seed files (registry & timestamp)
+    copy_if_missing("/app0/seed/system.reg", "/data/prospero-win/prefixes/soccer13/system.reg");
+    copy_if_missing("/app0/seed/user.reg", "/data/prospero-win/prefixes/soccer13/user.reg");
+    copy_if_missing("/app0/seed/userdef.reg", "/data/prospero-win/prefixes/soccer13/userdef.reg");
+    copy_if_missing("/app0/seed/.update-timestamp", "/data/prospero-win/prefixes/soccer13/.update-timestamp");
+
+    // 5. Option File & patch database (PESEdit squads, transfers, kits)
+    copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
+    copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
+    copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
+    copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
+
+    // 6. Profiles & configs
+    copy_if_missing("/app0/app/profiles/soccer13.profile", "/data/prospero-win/profiles/soccer13.profile");
+    copy_if_missing("/app0/app/radv.env", "/data/prospero-win/radv.env");
+    copy_if_missing("/app0/radv.env", "/data/prospero-win/radv.env");
+    copy_if_missing("/app0/app/config/dxvk.conf", "/data/prospero-win/prefixes/soccer13/dxvk.conf");
+    copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat");
+    copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat");
+    copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/settings.dat");
+
+    sceKernelDebugOutText(0, "s13_stub: provisioning check complete (direct /app0 mapping)\n");
+}
 
 /* CRC-16/XMODEM NOT Checksum for settings.dat */
 static uint16_t s13_crc16(const uint8_t *data, size_t len) {
@@ -148,14 +291,19 @@ static const Descriptor *find_descriptor(const Segment *items, uint32_t count) {
 
 int main(int argc, char **argv) {
     (void)argc;
-    sceKernelDebugOutText(0, "s13_stub: SOCCER 13 Direct Autoboot (HIGH 1080p)\n");
+    sceKernelDebugOutText(0, "s13_stub: SOCCER 13 Standalone Autoboot (HIGH 1080p)\n");
 
-    // 1. Write High Preset (1920x1080 Full HD, High Quality)
-    apply_preset(1920, 1080, 2);
+    // 1. One-time first boot auto-provisioning
+    provision_first_boot();
+
+    // 2. Ensure settings.dat is initialized
+    if (!file_exists_and_sized("/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat", 852)) {
+        apply_preset(1920, 1080, 2);
+    }
 
     diagnose_libkernel();
 
-    // 2. Load relocated_wine_app.prx into high memory
+    // 3. Load relocated_wine_app.prx into high memory
     int result = 0;
     uint32_t handle = sceKernelLoadStartModule(
         "/app0/sce_module/relocated_wine_app.prx", 0, NULL, 0, NULL, &result);
@@ -184,7 +332,7 @@ int main(int argc, char **argv) {
 
     sceKernelDebugOutText(0, "relocwine: entering high-address Wine PRX (direct game mode: soccer13)\n");
 
-    // 3. Direct autoboot into soccer13 game mode
+    // 4. Direct autoboot into soccer13 game mode
     char *game_argv[] = {
         (argv && argv[0]) ? argv[0] : "/app0/eboot.bin",
         "profile=soccer13",

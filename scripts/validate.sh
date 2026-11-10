@@ -37,12 +37,19 @@ if [[ -f "$BASELINE_STAGE/eboot.bin" && -f "$CANDIDATE_STAGE/eboot.bin" ]]; then
 fi
 
 # 4. PKG Validation if package exists
-PKG_PATH="${1:-$PROJECT_ROOT/release/SOCCER13-PS4.pkg}"
-if [[ ! -f "$PKG_PATH" ]]; then
-  PKG_PATH="$PROJECT_ROOT/artifacts/SOCCER13-PS4.pkg"
-fi
-if [[ ! -f "$PKG_PATH" && -f "$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg" ]]; then
-  PKG_PATH="$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg"
+PKG_PATH="${1:-}"
+if [[ -z "$PKG_PATH" || ! -f "$PKG_PATH" ]]; then
+  if [[ -f "$PROJECT_ROOT/release/SOCCER13-FULL-PS4.pkg" ]]; then
+    PKG_PATH="$PROJECT_ROOT/release/SOCCER13-FULL-PS4.pkg"
+  elif [[ -f "$PROJECT_ROOT/artifacts/SOCCER13-FULL-PS4.pkg" ]]; then
+    PKG_PATH="$PROJECT_ROOT/artifacts/SOCCER13-FULL-PS4.pkg"
+  elif [[ -f "$PROJECT_ROOT/release/SOCCER13-PS4.pkg" ]]; then
+    PKG_PATH="$PROJECT_ROOT/release/SOCCER13-PS4.pkg"
+  elif [[ -f "$PROJECT_ROOT/artifacts/SOCCER13-PS4.pkg" ]]; then
+    PKG_PATH="$PROJECT_ROOT/artifacts/SOCCER13-PS4.pkg"
+  elif [[ -f "$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg" ]]; then
+    PKG_PATH="$PROJECT_ROOT/artifacts/baseline/ORBIS-WIN-BASELINE.pkg"
+  fi
 fi
 
 if [[ -f "$PKG_PATH" && -s "$PKG_PATH" ]]; then

@@ -5,7 +5,8 @@
 **Target Platform:** PlayStation 4 (PS4 HEN)  
 **Base Runtime:** [`plastikman/orbis-win`](https://github.com/plastikman/orbis-win)  
 **Reference Implementation:** [`7tg/futbol13`](https://github.com/7tg/futbol13)  
-**Primary Specification:** [prd.md](./prd.md)
+**Primary Specification:** [prd.md](./prd.md)  
+**Packaging Specification:** [dump.md](./dump.md)
 
 ---
 
@@ -21,7 +22,7 @@
    - **Wine** untuk eksekusi PE32 & translasi Win32 API / XInput / DirectSound
    - **DXVK** untuk translasi Direct3D 9 ke Vulkan
    - **Mesa / RADV** sebagai backend grafis AMD GPU pada PS4
-   - **Native PS4 Homebrew Launcher (`SOCCER13`)** untuk manajemen instalasi, Wine prefix, konfigurasi `settings.dat`, input DualShock 4, dan logging
+   - **Direct Autoboot Stub (`handoff_stub.c`) & Native PS4 Launcher (`SOCCER13`)** untuk manajemen instalasi, Wine prefix, konfigurasi `settings.dat`, input DualShock 4, dan logging
 
 Setiap AI Coding Agent yang bekerja di repositori ini **wajib** mematuhi seluruh aturan, batasan arsitektur, dan tahapan kerja di dokumen ini sebelum menulis atau memodifikasi kode.
 
@@ -31,7 +32,7 @@ Setiap AI Coding Agent yang bekerja di repositori ini **wajib** mematuhi seluruh
 
 AI Coding Agent **harus** mematuhi 18 aturan utama berikut tanpa pengecualian:
 
-1. **Audit First:** Jangan langsung menulis implementasi launcher, script build, atau mengubah runtime sebelum menyelesaikan **Phase 0: Repository Audit**.
+1. **Audit First:** Selesaikan audit arsitektur sebelum membuat perubahan radikal.
 2. **Deep-Dive `orbis-win`:** Pelajari struktur, cara kerja, dan batasan [`plastikman/orbis-win`](https://github.com/plastikman/orbis-win) secara menyeluruh.
 3. **Read Upstream Docs First:** Baca `AGENTS.md`, `docs/BUILDING.md`, `HARDWARE-STATUS.md`, dan seluruh dokumentasi build di upstream `orbis-win` sebelum menyentuh kode.
 4. **Respect Upstream Foundation:** Gunakan `orbis-win` sebagai fondasi utama. Pisahkan dengan tegas antara kode upstream (`runtime/orbis-win/`), patch spesifik PS4, dan kode/konfigurasi khusus `soccer13` (`app/`).
@@ -46,7 +47,7 @@ AI Coding Agent **harus** mematuhi 18 aturan utama berikut tanpa pengecualian:
    - Dilarang menggunakan tag `latest`.
 10. **100% Dockerized Build:** Seluruh proses build, validasi, packaging PKG, dan host testing **wajib** berjalan di dalam Docker yang membungkus (*wraps*) pipeline build resmi `orbis-win`. Jangan mengharuskan instalasi compiler/SDK manual di mesin host.
 11. **No Game Files or Trademarks in Repo:** Dilarang memasukkan executable game, `settings.exe`, file `.img`, save data, logo resmi, atau aset proprietary pihak ketiga ke dalam repositori Git. Gunakan nama dan karya seni *clean-room* `SOCCER13`.
-12. **No Proprietary Blobs in Docker Image:** Dilarang memasukkan file game Windows, firmware dump PS4, atau modul proprietary console ke dalam Docker image. Modul/input yang hanya berasal dari console pengguna harus disuplai melalui *external bind mount* yang tidak di-commit, dengan pesan error yang jelas jika belum tersedia.
+12. **No Proprietary Blobs in Docker Image:** Dilarang memasukkan file game Windows, firmware dump PS4, atau modul proprietary console ke dalam Docker image. Modul/input yang hanya berasal dari console pengguna harus disuplai melalui *external bind mount* atau folder lokal yang tidak di-commit (`build/`), dengan pesan error yang jelas jika belum tersedia.
 13. **Preserve Working Upstream Code:** Jangan menghapus konfigurasi, profile game referensi, atau patch upstream yang sudah terbukti bekerja di `orbis-win`.
 14. **Incremental & Measurable Changes:** Lakukan perubahan kecil, terisolasi, dan terukur.
 15. **Testable Milestones:** Setiap milestone/fase harus menghasilkan *deliverable* konkret yang dapat diverifikasi terhadap *acceptance criteria*.
@@ -58,26 +59,12 @@ AI Coding Agent **harus** mematuhi 18 aturan utama berikut tanpa pengecualian:
 
 ## 3. First Task for AI Agent (Phase 0 Gate)
 
-**STOP & CHECK:** Sebelum menulis kode di `app/`, `docker/`, atau `scripts/`, periksa apakah 5 dokumen audit Phase 0 berikut sudah ada dan lengkap. Jika belum, **tugas pertama Anda adalah menyelesaikan Phase 0: Repository Audit**.
-
-### Target Audit Upstream (`orbis-win` & `futbol13`)
-Agent harus mengaudit secara faktual:
-- `docs/BUILDING.md`, `HARDWARE-STATUS.md`, dan `AGENTS.md` milik `orbis-win`
-- `scripts/` dan `scripts/ci/` di `orbis-win`
-- `config.env.example` dan mekanisme fetching SDK
-- Persyaratan modul console (file/library apa yang perlu diekstrak dari PS4 pengguna)
-- Commit hash pin saat ini untuk Wine, DXVK, Mesa/RADV, dan OpenOrbis toolchain
-- Wine ABI yang digunakan serta game profile referensi yang sudah terbukti berjalan di `orbis-win`
-- Pola game profile, Wine prefix setup, `settings.dat`, dan launcher workflow dari `7tg/futbol13`
-
-### 5 Dokumen Deliverable Wajib Phase 0
+Phase 0 telah diselesaikan dengan 5 deliverable dokumen di folder `docs/`:
 1. `docs/REPOSITORY-AUDIT.md` — Analisis arsitektur aktual `orbis-win`, alur build upstream, struktur runtime, dan perbandingan dengan `futbol13`.
-2. `docs/DEPENDENCY-MATRIX.md` — Inventaris lengkap seluruh dependency (SDK, compiler, Wine, DXVK, Mesa/RADV, host tools, dan console modules yang tidak boleh didistribusikan) beserta versi/commit pin dan checksum.
-3. `docs/PS4-COMPATIBILITY-ANALYSIS.md` — Evaluasi kapabilitas PS4 (CPU Jaguar, GPU GCN/RADV Vulkan, batas RAM, Orbis OS filesystem/permissions) serta perbedaan antara PS4 Fat, Slim, dan Pro.
-4. `docs/DOCKER-BUILD-PLAN.md` — Rancangan pembungkusan (*wrapping*) build script resmi `orbis-win` ke dalam multi-stage Docker container, strategi caching volume, dan external bind mount.
-5. `docs/SOCCER13-COMPATIBILITY-PLAN.md` — Rencana integrasi spesifik `soccer13` (validasi executable PE32, kebutuhan DLL/Win32 API, Direct3D 9 → DXVK, XInput mapping, DirectSound/XAudio, struktur registry, dan format biner `settings.dat`).
-
-> **Gate Condition:** Setelah kelima dokumen di atas selesai dibuat, berikan **Feasibility Report** dan **Daftar Blocker** kepada pengguna sebelum melanjutkan ke Phase 1.
+2. `docs/DEPENDENCY-MATRIX.md` — Inventaris lengkap seluruh dependency beserta versi/commit pin dan checksum.
+3. `docs/PS4-COMPATIBILITY-ANALYSIS.md` — Evaluasi kapabilitas PS4 (CPU Jaguar, GPU GCN/RADV Vulkan, batas RAM, Orbis OS filesystem/permissions).
+4. `docs/DOCKER-BUILD-PLAN.md` — Rancangan pembungkusan build script resmi `orbis-win` ke dalam multi-stage Docker container.
+5. `docs/SOCCER13-COMPATIBILITY-PLAN.md` — Rencana integrasi spesifik `soccer13` (PE32, DXVK D3D9, XInput, format biner `settings.dat`).
 
 ---
 
@@ -95,8 +82,13 @@ soccer13/
 ├── runtime/
 │   └── orbis-win/              # Git submodule / upstream reference (JANGAN dimodifikasi sembarangan)
 ├── app/
+│   ├── assets/                 # icon0.png, pic0.png, pic1.png, bg.raw
 │   ├── launcher/               # Native PS4 Homebrew Launcher SOCCER13 (C/C++)
 │   │   ├── src/
+│   │   │   ├── handoff_stub.c  # Direct Autoboot Stub (no-RELRO)
+│   │   │   ├── launcher_ui.c   # Model 1 Preset Selector
+│   │   │   ├── launcher_video.c# Direct VideoOut PS4
+│   │   │   └── main.c          # Launcher entrypoint
 │   │   ├── include/
 │   │   └── CMakeLists.txt
 │   ├── profiles/
@@ -108,42 +100,42 @@ soccer13/
 │   ├── build.sh                # Entrypoint: docker compose run --rm builder build
 │   ├── test.sh                 # Entrypoint: docker compose run --rm builder test
 │   ├── release.sh              # Entrypoint: docker compose run --rm builder release
-│   ├── package.sh              # Pembuatan PS4 PKG (SOCCER13-PS4.pkg)
+│   ├── package.sh              # Pembuatan Standalone PKG (SOCCER13-FULL-PS4.pkg)
+│   ├── dump-from-ps4.py        # Penarik dump game & registry dari PS4 via FTP
 │   └── validate.sh             # Validasi artefak, lisensi, kebersihan merek dagang, dan SHA256
 ├── tests/
 │   ├── launcher/               # Unit tests untuk logika launcher, path, & validator
 │   ├── config/                 # Tests untuk generator/parser settings.dat & profile
 │   ├── package/                # Verifikasi struktur PKG & tidak adanya file terlarang
 │   └── integration/            # End-to-end host pipeline checks
-├── docs/                       # Dokumentasi teknis & hasil audit Phase 0
+├── docs/                       # Dokumentasi teknis & hasil audit
 ├── artifacts/                  # Output build di host (diabaikan oleh Git)
 ├── prd.md                      # Product Requirements Document (sumber kebenaran utama)
+├── dump.md                     # Spesifikasi teknis dump & standalone packaging
 ├── AGENTS.md                   # Instruksi operasional AI Agent (dokumen ini)
 └── README.md                   # Dokumentasi utama repositori
 ```
 
 ---
 
-## 5. Development Phases & Acceptance Gates
+## 5. Development Phases & Current Status
 
-Kerjakan project secara berurutan dari **Phase 0** hingga **Phase 6**. Jangan melompati fase.
-
-| Phase | Fokus Utama | Deliverables Utama | Gate / Acceptance Criteria |
+| Phase | Fokus Utama | Deliverables Utama | Status |
 |---|---|---|---|
-| **Phase 0** | Repository Audit | 5 dokumen di `docs/` + Feasibility & Blocker Report | Semua dependency, commit pin, dan alur build upstream `orbis-win` terpetakan tanpa asumsi. |
-| **Phase 1** | Docker Build Infrastructure | `Dockerfile`, `docker-compose.yml`, `dependencies.lock`, `scripts/` | Image ter-build dari clean checkout tanpa bergantung pada toolchain host; validasi checksum berjalan. |
-| **Phase 2** | Baseline Runtime | Baseline PKG, `BUILD-MANIFEST.txt`, laporan uji PS4 | `orbis-win` baseline berjalan di PS4 HEN target, Wine terinisialisasi, dan game referensi upstream mencapai gameplay. |
-| **Phase 3** | SOCCER13 Integration | `soccer13.profile`, prefix setup, validator instalasi, generator `settings.dat`, `dxvk.conf` | Prefix `soccer13` siap, executable & `img/` tervalidasi, konfigurasi terpasang tanpa mengubah file sumber pengguna. |
-| **Phase 4** | Game Compatibility | Compatibility matrix, tuning DXVK/XInput/Audio, laporan performa | 12 tahap pengujian lulus di PS4: Wine boot → Game boot → Init → Main Menu → Team Select → Match Load → Gameplay → Audio → Controller → Match End → Save/Load → Clean Exit. |
-| **Phase 5** | Launcher Integration | Aplikasi Native PS4 Launcher `SOCCER13` (`app/launcher/`), UI DualShock 4, fitur Repair & Backup Save | Seluruh menu dinavigasi dengan DualShock 4 (tanpa keyboard/mouse), status/error jelas, Repair tidak menghapus save data. |
-| **Phase 6** | Release | `release/SOCCER13-PS4.pkg`, `BUILD-MANIFEST.txt`, `SHA256SUMS`, `THIRD_PARTY.md`, `README.md` | PKG terinstal di PS4 HEN, game berjalan dari launcher `SOCCER13`, bebas file/merek dagang proprietary, audit lisensi & SHA-256 lulus. |
+| **Phase 0** | Repository Audit | 5 dokumen di `docs/` + Feasibility & Blocker Report | **COMPLETE** |
+| **Phase 1** | Docker Build Infrastructure | `Dockerfile`, `docker-compose.yml`, `dependencies.lock`, `scripts/` | **COMPLETE** |
+| **Phase 2** | Baseline Runtime | Baseline PKG, `BUILD-MANIFEST.txt`, verifikasi eksekusi | **COMPLETE** |
+| **Phase 3** | SOCCER13 Integration | `soccer13.profile`, prefix setup, validator instalasi, generator `settings.dat`, `dxvk.conf` | **COMPLETE** |
+| **Phase 4** | Game Compatibility | 12 tahap pengujian lulus di hardware PS4 target: Wine boot $\rightarrow$ Game boot $\rightarrow$ Main Menu $\rightarrow$ Match Load $\rightarrow$ Gameplay (1080p High 60 FPS) $\rightarrow$ Audio $\rightarrow$ Controller $\rightarrow$ Clean Exit. | **COMPLETE** |
+| **Phase 5** | Launcher Integration | UI Native PS4 Launcher `SOCCER13` (Model 1 Preset Selector) & Direct Autoboot Stub (`handoff_stub.c`) | **COMPLETE** |
+| **Phase 6** | Standalone Release | `scripts/dump-from-ps4.py`, Standalone `SOCCER13-FULL-PS4.pkg` (6.1 GB), penanganan error `2157510736`, patch PlayGo `PkgTool.Core`, dan verifikasi SHA-256. | **COMPLETE** |
 
 ---
 
 ## 6. Technical & Functional Guardrails
 
 ### 6.1 Docker CLI Contract
-Implementasikan dan pertahankan antarmuka perintah berikut untuk seluruh workflow developer:
+Seluruh workflow developer dijalankan melalui container:
 ```bash
 docker compose build
 docker compose run --rm builder build
@@ -155,32 +147,40 @@ docker compose run --rm builder clean
 
 ### 6.2 Game Installation & Wine Prefix (FR-01, FR-02, FR-08)
 - **Validasi Instalasi:** Pastikan keberadaan executable utama (`pes2013.exe`) dan direktori `img/` sebelum menyalin atau menjalankan game.
-- **Sumber Instalasi:** Dukung pembacaan dari USB dan FTP tanpa memodifikasi file sumber dan tanpa mengunduh game dari internet.
-- **Proteksi Save Data:** Lokasi save di dalam prefix (`drive_c/users/.../Documents/.../save/`) yang berisi `EDIT.bin`, Option File, dan Master League **tidak boleh ditimpa atau dihapus** saat melakukan proses *Repair* prefix.
+- **Sumber Instalasi:** Dukung pembacaan dari USB, FTP, dan internal bundle PKG tanpa memodifikasi file sumber dan tanpa mengunduh game dari internet.
+- **Proteksi Save Data:** Lokasi save di dalam prefix (`drive_c/users/.../Documents/.../save/`) yang berisi `EDIT.bin`, Option File, dan Master League **tidak boleh ditimpa atau dihapus** saat melakukan proses *Repair* prefix atau update package.
 
-### 6.3 Game Configuration & Launching (FR-03, FR-04, FR-07)
-- **Tanpa `settings.exe` di PS4:** Konfigurasi dilakukan langsung oleh launcher `SOCCER13` dengan men-generate/memodifikasi `settings.dat` menggunakan struktur biner yang telah diverifikasi.
-- **Baseline Konfigurasi Pengujian:**
-  - Mode: Fullscreen
-  - Resolusi awal: `1280x720` (jangan memaksakan `1600x900` atau `1920x1080` sebelum `720p` terbukti stabil mencapai gameplay)
-  - Graphics Quality: Medium
-  - Controller: XInput
-  - Audio: Enabled (uji terpisah dari grafis)
-  - VSync: Configurable
-- **Deteksi Status Proses:** Launcher tidak boleh menandai eksekusi sebagai "berhasil" hanya karena `fork`/`exec` Wine berhasil; pantau lifecycle proses hingga game berjalan dan tangkap exit code serta log crash.
+### 6.3 Standalone PKG Packaging & Volume Type Integrity (Mandatory Guardrail)
+- **Standalone Games Wajib Menggunakan `pkg_ps4_app`:**
+  - **DILARANG** menggunakan `<volume_type>pkg_ps4_remaster</volume_type>` pada standalone package. `pkg_ps4_remaster` menetapkan `ContentType.DP` (Digital Package Update/Remaster). Pada PS4 HEN, GoldHEN Package Installer / BGFT akan menolak instalasi dengan error kode **`2157510736`** (`0x80990050` = `SCE_BGFT_ERROR_INVALID_SESSION`) jika base app belum ada.
+  - Standalone game **wajib** menggunakan `<volume_type>pkg_ps4_app</volume_type>` (`ContentType.GD` / `0x0`).
+- **Patch Otomatis PkgTool.Core (PlayGo Chunk Allocation Shortfall):**
+  - Pada package besar (>2.2 GB), upstream `PkgTool.Core` memiliki bug buffer sizing di mana penambahan entry hash PlayGo menggeser `body_size` melewati batas alignment 512 KB, memicu exception `Playgo Chunk hash file was not allocated enough space`.
+  - `scripts/package.sh` secara otomatis dan idempoten menerapkan patch 1-byte pada `PkgTool.Core` (offset IL `0x6583`, byte file `77934451`: `0x1a` $\rightarrow$ `0x1e` untuk mengalokasikan 8 byte per chunk pada pre-pass). Jangan mengubah kembali perbandingan `ble.s` ke `br.s` karena merusak keseimbangan evaluasi stack .NET JIT (`InvalidProgramException`).
 
-### 6.4 Security, Trademark & Clean-Room Hygiene (NFR-05)
+### 6.4 Direct Autoboot Stub & no-RELRO Contract
+- `app/launcher/src/handoff_stub.c` dikompilasi menggunakan flag `PW_EXECUTABLE_NO_RELRO=1` dan script linker `stub-no-relro.ld` dengan rentang data segment `[0x7fff0000, 0x80000000)`.
+- Menggunakan pure libkernel syscalls (`sceKernelOpen`, `sceKernelRead`, `sceKernelWrite`, `sceKernelStat`, `sceKernelMkdir`, `sceKernelDebugOutText`).
+- Menghasilkan `settings.dat` 852-byte kanonikal dengan checksum CRC-16/XMODEM NOT terbalik yang cocok dengan formula Konami sebelum memanggil relocation loader.
+
+### 6.5 Security, Trademark & Clean-Room Hygiene (NFR-05)
 - Gunakan nama **`SOCCER13` / `soccer13`** untuk seluruh artefak, UI, dan dokumentasi.
-- Jangan pernah menulis IP address PS4, kredensial FTP, atau path lokal spesifik developer ke dalam file yang di-commit (gunakan file `.env` yang masuk ke `.gitignore`).
-- Tambahkan pemeriksaan otomatis di `scripts/validate.sh` dan `tests/package/` untuk memastikan tidak ada file `.exe`, `.dll` proprietary, `.img` aset game, atau dump firmware PS4 yang ikut terkemas di dalam `.pkg` maupun repositori.
+- **DILARANG KERAS** menulis IP address konsol asli (mis. `192.168.x.x`), kredensial FTP, atau path host absolut ke dalam file yang di-commit ke Git. Gunakan variabel lingkungan atau file `.env` (yang di-ignore oleh `.gitignore`).
+- Semua unit test di `tests/package/test_clean_room.py` wajib lulus sebelum commit.
 
-### 6.5 Hardware Testing Recording Standard (Section 9.2)
-Setiap laporan pengujian pada konsol PS4 wajib mencantumkan metadata berikut:
-- **PS4 Model:** Fat / Slim / Pro (hasil di PS4 Pro tidak boleh diasumsikan otomatis berlaku di Fat/Slim)
-- **System Firmware Version:** (mis. 9.00 / 11.00)
-- **HEN Version:** (mis. GoldHEN version)
-- **Package Version & Commit SHA:**
-- **Game Edition:** (versi rilis/patch executable pengguna)
-- **Runtime ABI:**
-- **Test Result per Stage (1–12):** PASS / FAIL
-- **Log File Path:** Lokasi log yang diambil via USB/FTP
+### 6.6 Patching & Modding Operational Rules
+- **Aset Dump Bersifat Lokal & Persisten:**
+  - File hasil dump game dari PS4 tersimpan di `build/ps4-dump/game/SOCCER13/` dan `build/ps4-dump/seed/`.
+  - Folder `build/` sepenuhnya di-ignore oleh Git, menjaga kebersihan repositori.
+- **Pemasangan Patch Baru:**
+  1. *Option File / Transfer (`EDIT.bin`):* Cukup dikirim langsung via FTP ke `/data/prospero-win/prefixes/soccer13/drive_c/users/.../save/EDIT.bin`. Tidak perlu rebuild PKG dan tidak perlu dump ulang.
+  2. *Testing Mod Langsung di PS4:* File mod baru dapat dikirim via FTP langsung ke `/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/`.
+  3. *Repackage Standalone PKG Baru:* Cukup letakkan file patch baru di `build/ps4-dump/game/SOCCER13/` pada PC, lalu jalankan `docker compose run --rm builder ./scripts/package.sh`. **Tidak perlu melakukan dump ulang dari konsol.**
+
+### 6.7 External Storage for Build Workspace (`build/external-storage`)
+- **Dukungan Storage Eksternal Otomatis:**
+  - Pengguna dapat menghubungkan media penyimpanan eksternal (USB SSD/HDD) yang di-mount atau di-*junction* ke folder lokal `build/external-storage`.
+  - Skrip build dan packaging (`scripts/package.sh`, `scripts/dump-from-ps4.py`) mendeteksi keberadaan dan hak tulis pada `build/external-storage`:
+    - **Jika storage eksternal terbaca:** Folder tersebut otomatis digunakan sebagai direktori kerja sementara (`WORK_DIR="$EXTERNAL_STORAGE/pkg-work"` yang menampung stage 6.1 GB dan output intermediate PKG 6.1 GB) serta cache dump, menghemat ~12+ GB ruang penyimpanan pada drive host internal.
+    - **Jika storage eksternal tidak terbaca / dicabut:** Skrip secara transparan kembali menggunakan direktori lokal `$PROJECT_ROOT/build/pkg-work` seperti biasa tanpa memicu error atau kegagalan pipeline.
+  - Seluruh subdirektori di bawah `build/` (termasuk `build/external-storage`) wajib selalu berada di dalam `.gitignore`.
