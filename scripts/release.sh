@@ -63,10 +63,15 @@ cd "$PROJECT_ROOT/release"
 ROOT_COMMIT=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "uncommitted")
 ORBIS_WIN_COMMIT=$(git -C "$PROJECT_ROOT/runtime/orbis-win" rev-parse HEAD 2>/dev/null || echo "unknown")
 
+PKG_NAME="SOCCER13-FULL-PS4.pkg"
+if [[ ! -f "$PKG_NAME" && -f "SOCCER13-PS4.pkg" ]]; then
+  PKG_NAME="SOCCER13-PS4.pkg"
+fi
+
 {
-  echo "package=SOCCER13-PS4.pkg"
-  if [[ -f "SOCCER13-PS4.pkg" && -s "SOCCER13-PS4.pkg" ]]; then
-    echo "package_sha256=$(sha256sum "SOCCER13-PS4.pkg" | cut -d' ' -f1)"
+  echo "package=$PKG_NAME"
+  if [[ -f "$PKG_NAME" && -s "$PKG_NAME" ]]; then
+    echo "package_sha256=$(sha256sum "$PKG_NAME" | cut -d' ' -f1)"
   else
     echo "package_sha256=none"
   fi
@@ -89,7 +94,7 @@ cd "$PROJECT_ROOT"
 
 # 6. Final validation
 echo "[+] Step 5: Running final release validation..."
-bash "$PROJECT_ROOT/scripts/validate.sh" "$PROJECT_ROOT/release/SOCCER13-PS4.pkg"
+bash "$PROJECT_ROOT/scripts/validate.sh" "$PROJECT_ROOT/release/$PKG_NAME"
 
 echo "=========================================================="
 echo "  SOCCER13 Release build completed successfully!"
