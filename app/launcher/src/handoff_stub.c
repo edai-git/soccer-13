@@ -27,8 +27,39 @@ static const char *const libkernel_symbols[] __attribute__((unused)) = {
 /* File copy buffer: 32KB to fit within no-RELRO 64KB data segment window [0x7fff0000, 0x80000000) */
 static uint8_t g_copy_chunk[32 * 1024];
 
+/* Create directory and force 0777 (mkdir mode is masked by umask, and
+ * pre-existing dirs created via FTP/older builds may carry stricter modes). */
 static void make_dir(const char *path) {
     sceKernelMkdir(path, 0777);
+    sceKernelChmod(path, 0777);
+}
+
+/* Recursively force 0777 on every dir/file below `path` (FreeBSD dirent layout:
+ * u32 d_fileno, u16 d_reclen, u8 d_type, u8 d_namlen, char d_name[]). */
+static void chmod_tree(const char *path, int depth) {
+    sceKernelChmod(path, 0777);
+    if (depth > 16) return;
+    int32_t fd = sceKernelOpen(path, 0x0000 | 0x20000 /* O_RDONLY | O_DIRECTORY */, 0);
+    if (fd < 0) return;
+    char buf[2048];
+    int n;
+    while ((n = sceKernelGetdents(fd, buf, sizeof(buf))) > 0) {
+        int off = 0;
+        while (off < n) {
+            uint16_t reclen = *(uint16_t *)(buf + off + 4);
+            uint8_t type = *(uint8_t *)(buf + off + 6);
+            const char *name = buf + off + 8;
+            if (reclen == 0) break;
+            if (!(name[0] == '.' && (name[1] == 0 || (name[1] == '.' && name[2] == 0)))) {
+                char child[512];
+                snprintf(child, sizeof(child), "%s/%s", path, name);
+                if (type == 4 /* DT_DIR */) chmod_tree(child, depth + 1);
+                else sceKernelChmod(child, 0777);
+            }
+            off += reclen;
+        }
+    }
+    sceKernelClose(fd);
 }
 
 static bool file_exists_and_sized(const char *path, int64_t expected_size) {
@@ -110,11 +141,15 @@ static void cleanup_legacy_game_dir(void) {
 static void provision_first_boot(void) {
     sceKernelDebugOutText(0, "s13_stub: checking first boot provisioning...\n");
 
+    // 0. Make any pre-existing /data/prospero-win tree accessible (0777) before touching it
+    chmod_tree("/data/prospero-win", 0);
+
     // 1. Clean up legacy or interrupted game asset directory in /data
     // Game assets are mounted directly from /app0/game/SOCCER13 via .pw-symlinks
     cleanup_legacy_game_dir();
 
     // 2. Ensure directory tree exists (do NOT create drive_c/Games/SOCCER13 directory)
+    //    (each make_dir forces 0777 BEFORE any data is written).
     make_dir("/data/prospero-win");
     make_dir("/data/prospero-win/profiles");
     make_dir("/data/prospero-win/logs");
@@ -162,6 +197,9 @@ static void provision_first_boot(void) {
     copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat");
     copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat");
     copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/settings.dat");
+
+    // 7. Final permission pass: make the whole runtime tree accessible (0777)
+    chmod_tree("/data/prospero-win", 0);
 
     sceKernelDebugOutText(0, "s13_stub: provisioning check complete (direct /app0 mapping)\n");
 }

@@ -15,7 +15,7 @@ PKG_VERSION="${PKG_VERSION:-01.00}"
 OUT_DIR="${OUT_DIR:-$PROJECT_ROOT/artifacts}"
 
 # External storage detection (build/external-storage)
-EXTERNAL_STORAGE="$PROJECT_ROOT/build/external-storage"
+EXTERNAL_STORAGE="${EXTERNAL_STORAGE:-$PROJECT_ROOT/build/external-storage}"
 if [[ -d "$EXTERNAL_STORAGE" ]] && touch "$EXTERNAL_STORAGE/.write_test" 2>/dev/null; then
     rm -f "$EXTERNAL_STORAGE/.write_test"
     BUILD_BASE="$EXTERNAL_STORAGE"
@@ -28,9 +28,11 @@ WORK_DIR="${WORK_DIR:-$BUILD_BASE/pkg-work}"
 STAGE_DIR="$WORK_DIR/stage"
 PKG_OUT="$WORK_DIR/output"
 
-if [[ -d "$EXTERNAL_STORAGE/ps4-dump/game/SOCCER13" ]]; then
+if [[ -n "${DUMP_DIR:-}" ]]; then
+    echo "[+] Using game dump from DUMP_DIR override: $DUMP_DIR"
+elif [[ -d "$EXTERNAL_STORAGE/ps4-dump/game/SOCCER13" ]]; then
     DUMP_DIR="$EXTERNAL_STORAGE/ps4-dump"
-    log "Using game dump from external storage: $DUMP_DIR"
+    echo "[+] Using game dump from external storage: $DUMP_DIR"
 else
     DUMP_DIR="$PROJECT_ROOT/build/ps4-dump"
 fi
