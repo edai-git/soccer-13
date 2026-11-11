@@ -480,15 +480,47 @@ done
 
 log "Building standalone PKG..."
 
-python3 "$REPACKAGE_SCRIPT" \
-    --base-stage "$STAGE_DIR" \
-    --out-dir "$PKG_OUT" \
-    --title-id "$TITLE_ID" \
-    --title "$TITLE" \
-    --version "$PKG_VERSION" \
-    --eboot-source "$BUILD_LAUNCHER/eboot.bin" \
-    --replace "sce_module/libc.prx=$PW_MODULE_STUBS_DIR/libc.prx" \
-    --replace "sce_module/libSceFios2.prx=$PW_MODULE_STUBS_DIR/libSceFios2.prx"
+CONTENT_LABEL="${TITLE_ID^^}"
+CONTENT_LABEL="${CONTENT_LABEL//[^A-Z0-9]/}"
+CONTENT_LABEL="${CONTENT_LABEL}0000000000000000"
+CONTENT_LABEL="${CONTENT_LABEL:0:16}"
+CONTENT_ID="IV0000-${TITLE_ID}_00-${CONTENT_LABEL}"
+
+mkdir -p "$STAGE_DIR/sce_sys" "$STAGE_DIR/sce_module"
+copy_replace "$PW_MODULE_STUBS_DIR/libc.prx" "$STAGE_DIR/sce_module/libc.prx"
+copy_replace "$PW_MODULE_STUBS_DIR/libSceFios2.prx" "$STAGE_DIR/sce_module/libSceFios2.prx"
+
+PKGTOOL="$OO/bin/linux/PkgTool.Core"
+SFO="$STAGE_DIR/sce_sys/param.sfo"
+if [[ ! -f "$SFO" ]]; then
+    log "Generating param.sfo..."
+    "$PKGTOOL" sfo_new "$SFO" > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" APP_TYPE --type Integer --maxsize 4 --value 1 > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" APP_VER --type Utf8 --maxsize 8 --value "$PKG_VERSION" > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" ATTRIBUTE --type Integer --maxsize 4 --value 0 > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" CATEGORY --type Utf8 --maxsize 4 --value gd > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" CONTENT_ID --type Utf8 --maxsize 48 --value "$CONTENT_ID" > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0 > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" SYSTEM_VER --type Integer --maxsize 4 --value 0 > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" TITLE --type Utf8 --maxsize 128 --value "$TITLE" > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" TITLE_ID --type Utf8 --maxsize 12 --value "$TITLE_ID" > /dev/null
+    "$PKGTOOL" sfo_setentry "$SFO" VERSION --type Utf8 --maxsize 8 --value "$PKG_VERSION" > /dev/null
+fi
+
+log "Generating pkg.gp4 project..."
+python3 "$PROJECT_ROOT/scripts/generate-gp4.py" \
+    --stage-dir "$STAGE_DIR" \
+    --content-id "$CONTENT_ID" \
+    --output "$STAGE_DIR/pkg.gp4"
+
+log "Executing PkgTool.Core pkg_build..."
+(
+    cd "$STAGE_DIR"
+    "$PKGTOOL" pkg_build pkg.gp4 "$PKG_OUT" > "$PKG_OUT/pkg-build.log" 2>&1 || {
+        cat "$PKG_OUT/pkg-build.log" >&2
+        die "PkgTool.Core pkg_build failed"
+    }
+)
 
 PKG_FOUND=""
 
