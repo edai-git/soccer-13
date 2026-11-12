@@ -1,7 +1,7 @@
 # Makefile for soccer13 (PS4 HEN)
 
 .PHONY: all build test package validate release clean \
-        docker-build docker-run-build docker-run-test docker-run-release docker-run-clean
+        docker-build docker-run-build docker-run-test docker-run-package docker-run-release docker-run-clean
 
 all: build
 
@@ -32,6 +32,9 @@ docker-run-build:
 
 docker-run-test:
 	docker compose run --rm builder test
+
+docker-run-package:
+	docker compose run --rm -v "G:\external-storage:/workspace/build/external-storage" builder ./scripts/package.sh
 
 docker-run-release:
 	docker compose run --rm builder release
