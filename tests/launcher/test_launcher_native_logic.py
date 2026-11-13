@@ -90,10 +90,10 @@ class TestLauncherNativeLogic(unittest.TestCase):
         self.assertTrue(stub_c.is_file(), "handoff_stub.c not found")
         content = stub_c.read_text(encoding="utf-8")
 
-        # Must write .pw-symlinks pointing to /app0/game/SOCCER13
-        self.assertIn("SOCCER13\\t/app0/game/SOCCER13", content)
-        self.assertIn("drive_c/Games/.pw-symlinks", content)
+        # Must write .pw-symlinks in dosdevices mapping drive D: directly to /app0/game/SOCCER13
         self.assertIn("dosdevices/.pw-symlinks", content)
+        self.assertIn("d:\\t/app0/game/SOCCER13", content)
+        self.assertIn("path=D:\\\\pes2013.exe", content)
 
         # Must NOT copy heavy img assets in synchronous loop (prevents 5-minute freeze on boot)
         self.assertNotIn("copy_if_missing(src, dst);", content)

@@ -108,35 +108,6 @@ static void write_text_file(const char *path, const char *content) {
     }
 }
 
-static void cleanup_legacy_game_dir(void) {
-    static const char *const img_files[] = {
-        "dt00_e.img", "dt01.img", "dt02.img", "dt03.img", "dt04.img",
-        "dt05_a.img", "dt05_e.img", "dt05_n.img", "dt05_r.img", "dt05_t.img",
-        "dt05_v.img", "dt06.img", "dt07.img", "dt08.img", "dt09.img",
-        "dt0a.img", "dt0b.img", "dt0c.img", "dt0d.img", "dt0e.img",
-        "dt0f.img", "dt10.img", "dt11.img", "pes12ci.sfd.bak", "pes13cl_a.sfd",
-        "pes13cl_b.sfd", "pes13cl_c.sfd", "pes13el_a.sfd", "pes13el_b.sfd",
-        "pes13el_c.sfd", "pes13lb_a.sfd", "pes13pv.sfd.bak", "pes13sc_a.sfd",
-        "pes13st.sfd", "pes_topBG_E_1.sfd", "pes_topBG_E_2.sfd", NULL
-    };
-    for (int i = 0; img_files[i]; ++i) {
-        char path[128];
-        snprintf(path, sizeof(path), "/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/img/%s", img_files[i]);
-        sceKernelUnlink(path);
-    }
-    sceKernelRmdir("/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/img");
-
-    static const char *const root_files[] = {
-        "pes2013.exe", "rld.dll", "settings.exe", "code.txt", "dxvk.conf", NULL
-    };
-    for (int i = 0; root_files[i]; ++i) {
-        char path[128];
-        snprintf(path, sizeof(path), "/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13/%s", root_files[i]);
-        sceKernelUnlink(path);
-    }
-    sceKernelRmdir("/data/prospero-win/prefixes/soccer13/drive_c/Games/SOCCER13");
-}
-
 /* One-time provisioning for new PS4 consoles on First Boot */
 static void provision_first_boot(void) {
     sceKernelDebugOutText(0, "s13_stub: checking first boot provisioning...\n");
@@ -144,12 +115,7 @@ static void provision_first_boot(void) {
     // 0. Make any pre-existing /data/prospero-win tree accessible (0777) before touching it
     chmod_tree("/data/prospero-win", 0);
 
-    // 1. Clean up legacy or interrupted game asset directory in /data
-    // Game assets are mounted directly from /app0/game/SOCCER13 via .pw-symlinks
-    cleanup_legacy_game_dir();
-
-    // 2. Ensure directory tree exists (do NOT create drive_c/Games/SOCCER13 directory)
-    //    (each make_dir forces 0777 BEFORE any data is written).
+    // 1. Ensure directory tree exists (each make_dir forces 0777 BEFORE any data is written).
     make_dir("/data/prospero-win");
     make_dir("/data/prospero-win/profiles");
     make_dir("/data/prospero-win/logs");
@@ -170,26 +136,24 @@ static void provision_first_boot(void) {
     make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013");
     make_dir("/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save");
 
-    // 3. Drive & folder symlink tables (.pw-symlinks)
-    // Maps C:\Games\SOCCER13 -> /app0/game/SOCCER13 and D: -> /app0/game/SOCCER13
+    // 2. Drive symlink table (.pw-symlinks)
+    // Maps D: directly to /app0/game/SOCCER13 (read-only game assets inside PKG)
     write_text_file("/data/prospero-win/prefixes/soccer13/dosdevices/.pw-symlinks",
                     "c:\t../drive_c\nz:\t/\nd:\t/app0/game/SOCCER13\n");
-    write_text_file("/data/prospero-win/prefixes/soccer13/drive_c/Games/.pw-symlinks",
-                    "SOCCER13\t/app0/game/SOCCER13\n");
 
-    // 4. Prefix seed files (registry & timestamp)
+    // 3. Prefix seed files (registry & timestamp)
     copy_if_missing("/app0/seed/system.reg", "/data/prospero-win/prefixes/soccer13/system.reg");
     copy_if_missing("/app0/seed/user.reg", "/data/prospero-win/prefixes/soccer13/user.reg");
     copy_if_missing("/app0/seed/userdef.reg", "/data/prospero-win/prefixes/soccer13/userdef.reg");
     copy_if_missing("/app0/seed/.update-timestamp", "/data/prospero-win/prefixes/soccer13/.update-timestamp");
 
-    // 5. Option File & patch database (PESEdit squads, transfers, kits)
+    // 4. Option File & patch database (PESEdit squads, transfers, kits)
     copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
     copy_if_missing("/app0/seed/EDIT.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/EDIT.bin");
     copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/prospero/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
     copy_if_missing("/app0/seed/OPTION.bin", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/save/OPTION.bin");
 
-    // 6. Profiles & configs
+    // 5. Profiles & configs
     copy_if_missing("/app0/app/profiles/soccer13.profile", "/data/prospero-win/profiles/soccer13.profile");
     copy_if_missing("/app0/app/radv.env", "/data/prospero-win/radv.env");
     copy_if_missing("/app0/radv.env", "/data/prospero-win/radv.env");
@@ -198,7 +162,7 @@ static void provision_first_boot(void) {
     copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/prefixes/soccer13/drive_c/users/root/Documents/KONAMI/Pro Evolution Soccer 2013/settings.dat");
     copy_if_missing("/app0/app/config/settings.dat", "/data/prospero-win/settings.dat");
 
-    // 7. Final permission pass: make the whole runtime tree accessible (0777)
+    // 6. Final permission pass: make the whole runtime tree accessible (0777)
     chmod_tree("/data/prospero-win", 0);
 
     sceKernelDebugOutText(0, "s13_stub: provisioning check complete (direct /app0 mapping)\n");
@@ -374,7 +338,7 @@ int main(int argc, char **argv) {
     char *game_argv[] = {
         (argv && argv[0]) ? argv[0] : "/app0/eboot.bin",
         "profile=soccer13",
-        "path=C:\\Games\\SOCCER13\\pes2013.exe",
+        "path=D:\\pes2013.exe",
         NULL
     };
     entry(3, game_argv);

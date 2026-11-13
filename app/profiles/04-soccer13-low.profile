@@ -2,8 +2,8 @@
 [application]
 id = 04-soccer13-low
 name = 4. LOW 720p (Mode Anti-Lag / Ringan)
-executable = C:\Games\SOCCER13\pes2013.exe
-working_directory = C:\Games\SOCCER13
+executable = D:\pes2013.exe
+working_directory = D:\
 dll_overrides = d3d8,d3d9,d3d10core,d3d11,dxgi=n;dinput8=n,b
 prefix = soccer13
 runtime = wine-wow64
